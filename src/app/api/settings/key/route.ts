@@ -35,7 +35,6 @@ export async function POST(request: NextRequest) {
     const validation = settingsSchema.safeParse(body)
 
     if (!validation.success) {
-      console.log(validation.error)
       return NextResponse.json(
         {
           success: false,
@@ -166,13 +165,10 @@ export async function GET() {
     const userSettings: UserSettings = settings
     let maskedKey: string | null = null
 
-    console.log('db:', userSettings?.gemini_api_key)
     if (userSettings?.gemini_api_key) {
       try {
         const decryptedKey = decryptApiKey(userSettings.gemini_api_key)
-        console.log('decrypted:', decryptedKey)
         maskedKey = maskApiKey(decryptedKey)
-        console.log('masked:', maskedKey)
       } catch (error) {
         console.error('Failed to decrypt API key in route:', error)
         maskedKey = null
