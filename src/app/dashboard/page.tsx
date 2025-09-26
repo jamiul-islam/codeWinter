@@ -1,10 +1,12 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { NewProjectDialog } from '@/components/projects/NewProjectDialog'
-import { useProjectStore } from '@/lib/store/project-store'
+import { useProjectStore, Project } from '@/lib/store/project-store'
 
 export default function Dashboard() {
+  const router = useRouter()
   const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   // Zustand store state & actions
@@ -17,6 +19,12 @@ export default function Dashboard() {
   useEffect(() => {
     loadProjects()
   }, [loadProjects])
+
+  // Navigate to project page
+  const handleProjectClick = (projectId: string) => {
+    selectProject(projectId)
+    router.push(`/project/${projectId}`)
+  }
 
   return (
     <div className="p-6">
@@ -36,18 +44,23 @@ export default function Dashboard() {
         {projects.length === 0 ? (
           <div className="text-gray-500 col-span-full">No projects yet.</div>
         ) : (
-          projects.map((project) => (
+          projects.map((project: Project) => (
             <div
               key={project.id}
-              onClick={() => selectProject(project.id)}
+              onClick={() => handleProjectClick(project.id)}
               className={`p-4 rounded-lg shadow cursor-pointer hover:shadow-lg transition ${
                 selectedProjectId === project.id ? 'border-2 border-blue-500' : 'border border-gray-200'
               }`}
             >
               <h2 className="text-lg font-semibold">{project.name}</h2>
-              <p className="text-sm text-gray-500 mb-2">{project.description}</p>
+              {project.description && (
+                <p className="text-sm text-gray-500 mb-2">{project.description}</p>
+              )}
               <p className="text-sm text-gray-400">
-                Features: {project.features.length} • Updated: {new Date(project.updated_at).toLocaleDateString()}
+                Features: {project.features.length} • Updated:{' '}
+                {project.updatedAt
+                  ? new Date(project.updatedAt).toLocaleDateString()
+                  : 'N/A'}
               </p>
             </div>
           ))

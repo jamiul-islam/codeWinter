@@ -9,6 +9,7 @@ export interface FeatureNodeState {
   id: string
   title: string
   status: NodeStatus
+  graphPlaceholder?: any
 }
 
 

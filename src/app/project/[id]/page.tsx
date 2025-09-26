@@ -7,6 +7,7 @@ import { useProjectStore, FeatureNodeState } from '@/lib/store/project-store'
 interface Feature {
   id: string
   title: string
+  graphPlaceholder?: any // ✅ made optional
 }
 
 interface Project {
@@ -14,6 +15,7 @@ interface Project {
   name: string
   description?: string
   features: Feature[]
+  updatedAt: string
 }
 
 export default function ProjectPage() {
@@ -22,7 +24,7 @@ export default function ProjectPage() {
   const [error, setError] = useState<string | null>(null)
   const [projectName, setProjectName] = useState<string>('')
 
-  // Zustand store
+  // Zustand store for nodes (features)
   const nodes = useProjectStore((state) => state.nodes)
   const resetNodes = useProjectStore((state) => state.reset)
   const upsertNode = useProjectStore((state) => state.upsertNode)
@@ -38,15 +40,17 @@ export default function ProjectPage() {
         if (!res.ok) throw new Error('Failed to fetch project')
 
         const data: Project = await res.json()
+
         // Reset nodes before populating
         resetNodes()
 
-        // Populate nodes from features
+        // Populate nodes from features + graph placeholders
         data.features.forEach((feature) => {
           const node: FeatureNodeState = {
             id: feature.id,
             title: feature.title,
             status: 'idle',
+            graphPlaceholder: feature.graphPlaceholder ?? null, // ✅ now valid
           }
           upsertNode(node)
         })
@@ -79,6 +83,12 @@ export default function ProjectPage() {
             <div key={node.id} className="p-3 border rounded shadow">
               <h2 className="font-semibold">{node.title}</h2>
               <p>Status: {node.status}</p>
+              {/* ✅ Show placeholder info if available */}
+              {node.graphPlaceholder && (
+                <pre className="text-xs text-gray-400">
+                  {JSON.stringify(node.graphPlaceholder, null, 2)}
+                </pre>
+              )}
             </div>
           ))}
         </div>
