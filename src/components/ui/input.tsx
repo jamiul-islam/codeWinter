@@ -1,21 +1,25 @@
-import * as React from "react"
+'use client'
 
-import { cn } from "@/lib/utils"
+import { forwardRef } from 'react'
+import { cn } from '@/lib/utils/cn'
 
-function Input({ className, type, ...props }: React.ComponentProps<"input">) {
-  return (
+export type InputProps = React.InputHTMLAttributes<HTMLInputElement>
+
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ className, ...props }, ref) => (
     <input
-      type={type}
-      data-slot="input"
+      ref={ref}
       className={cn(
-        "file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-        "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+        'h-10 w-full rounded-full border border-[#1f1f1f]/15 bg-white/80 px-4 text-sm text-[#0F0F0F] transition placeholder:text-[#0f0f0f]/40 focus:border-[#4C7EFF]/50 focus:ring-2 focus:ring-[#4C7EFF]/30 focus:outline-none dark:border-[#f5f5f5]/12 dark:bg-[#111]/90 dark:text-[#F8F8F8] dark:placeholder:text-[#F8F8F8]/40',
+        // Disabled state
+        'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-100 dark:disabled:bg-slate-800',
+        // Readonly state
+        'read-only:cursor-default read-only:bg-slate-50 read-only:text-slate-600 dark:read-only:bg-slate-800/50 dark:read-only:text-slate-400',
         className
       )}
       {...props}
     />
   )
-}
+)
 
-export { Input }
+Input.displayName = 'Input'
