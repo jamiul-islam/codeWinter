@@ -37,6 +37,7 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
   const { signIn } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const emailFieldId = 'signin-email'
 
   const form = useForm<FormValues>({
     resolver: zodResolver(signInSchema),
@@ -65,19 +66,17 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
 
   if (success) {
     return (
-      <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-6 text-center">
-        <div className="mb-4 flex justify-center">
-          <span className="flex size-12 items-center justify-center rounded-full bg-cyan-500/20">
-            {successIcon}
-          </span>
+      <div className="space-y-2 text-center text-sm text-slate-200">
+        <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-cyan-500/40 bg-cyan-500/10">
+          {successIcon}
         </div>
-        <h3 className="mb-2 text-lg font-semibold text-white">
-          Check your inbox
-        </h3>
-        <p className="text-sm text-slate-200">
-          We&apos;ve sent a magic link to{' '}
-          <strong>{form.getValues('email')}</strong>. Follow the link to access
-          the dashboard.
+        <h3 className="text-base font-semibold text-white">Check your inbox</h3>
+        <p>
+          We sent a magic link to{' '}
+          <span className="font-medium text-cyan-100">
+            {form.getValues('email')}
+          </span>
+          . Use it to hop back into the dashboard.
         </p>
       </div>
     )
@@ -86,13 +85,15 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
   const isSubmitting = form.formState.isSubmitting
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-      <div className="space-y-2 text-left">
-        <Label>Email</Label>
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 text-left">
+      <div className="space-y-2">
+        <Label htmlFor={emailFieldId}>Work email</Label>
         <Input
           type="email"
           placeholder="name@example.com"
           disabled={isSubmitting}
+          id={emailFieldId}
+          autoComplete="email"
           {...form.register('email')}
         />
         {form.formState.errors.email && (
@@ -103,7 +104,7 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-100">
+        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-100">
           {error}
         </div>
       )}

@@ -8,7 +8,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
 import { useAuth } from '@/components/providers'
-import { Button, buttonClasses } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
+import { buttonClasses } from '@/components/ui/button-classes'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -138,15 +139,24 @@ export default function SettingsPage() {
     return <PageLoader />
   }
 
+  const cardClass =
+    'rounded-3xl border border-white/10 bg-white/5 shadow-inner shadow-black/30 backdrop-blur'
+
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
-      <header className="mb-10 flex flex-col gap-6 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-lg shadow-black/30 sm:flex-row sm:items-end sm:justify-between">
-        <div>
+    <main className="relative isolate mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-10 px-6 py-16">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+      <div className="pointer-events-none absolute left-12 top-28 -z-10 hidden h-60 w-60 rounded-full bg-cyan-500/15 blur-3xl md:block" />
+      <div className="pointer-events-none absolute bottom-8 right-0 -z-10 h-52 w-52 rounded-full bg-purple-500/10 blur-3xl" />
+
+      <header className={`${cardClass} flex flex-col gap-6 p-8 sm:flex-row sm:items-end sm:justify-between`}>
+        <div className="space-y-3">
           <p className="text-xs uppercase tracking-[0.35em] text-cyan-200/70">Account</p>
-          <h1 className="mt-3 text-3xl font-semibold text-white">Settings</h1>
-          <p className="mt-3 max-w-xl text-sm text-slate-300">
-            Manage your access and keep your Gemini credentials secure. Everything stays encrypted at rest.
-          </p>
+          <div>
+            <h1 className="text-3xl font-semibold text-white">Settings</h1>
+            <p className="mt-2 max-w-xl text-sm text-slate-300">
+              Keep your workspace in sync, manage your Gemini credentials, and stay ready to generate new PRDs.
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Link className={buttonClasses({ variant: 'secondary', size: 'sm' })} href="/dashboard">
@@ -160,7 +170,7 @@ export default function SettingsPage() {
 
       {feedback && (
         <div
-          className={`mb-8 rounded-2xl border p-4 text-sm ${
+          className={`${cardClass} p-4 text-sm ${
             feedback.type === 'success'
               ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
               : 'border-rose-500/30 bg-rose-500/10 text-rose-100'
@@ -171,7 +181,7 @@ export default function SettingsPage() {
       )}
 
       <div className="space-y-10">
-        <section className="rounded-3xl border border-white/10 bg-white/5 p-8">
+        <section className={`${cardClass} p-8`}>
           <h2 className="text-xl font-semibold text-white">Profile</h2>
           <p className="mt-2 text-sm text-slate-300">
             These details help us personalise your workspace.
@@ -182,19 +192,19 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-white/10 bg-white/5 p-8">
+        <section className={`${cardClass} p-8`}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-xl font-semibold text-white">Gemini API key</h2>
               <p className="mt-2 text-sm text-slate-300">
-                Add your own Gemini API key to generate architecture graphs and PRDs.
+                Add your API key to enable graph-to-PRD generation from inside the dashboard.
               </p>
             </div>
             {settings?.maskedKey && (
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="text-sm text-rose-300 underline-offset-4 hover:text-rose-200 hover:underline"
+                className="text-sm text-rose-300 underline-offset-4 transition hover:text-rose-200 hover:underline"
               >
                 Remove current key
               </button>
@@ -208,7 +218,7 @@ export default function SettingsPage() {
                 <Input value={settings.maskedKey} readOnly className="mt-2 font-mono" />
               </div>
             ) : (
-              <div className="rounded-2xl border border-slate-500/20 bg-slate-500/10 p-4 text-sm text-slate-200">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
                 No key saved yet. Paste your Gemini API key below to enable generation.
               </div>
             )}
@@ -282,6 +292,6 @@ export default function SettingsPage() {
           </Button>
         </ModalFooter>
       </Modal>
-    </div>
+    </main>
   )
 }

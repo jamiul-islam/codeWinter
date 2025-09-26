@@ -18,10 +18,10 @@ type MarkdownPreviewProps = {
 
 export function MarkdownPreview({ markdown }: MarkdownPreviewProps) {
   return (
-    <div className="prose prose-invert max-w-none rounded-2xl border border-slate-800 bg-slate-950/80 p-6">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-        {markdown ?? placeholder}
-      </ReactMarkdown>
+    <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-black/20">
+      <article className="prose prose-invert max-w-none">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown ?? placeholder}</ReactMarkdown>
+      </article>
     </div>
   )
 }
