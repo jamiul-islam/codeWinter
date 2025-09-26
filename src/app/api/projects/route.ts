@@ -44,7 +44,7 @@ export async function POST(req: Request) {
           user_id: user.id,
           name,
           description,
-          graph: null, 
+          graph: null,
         },
       ])
       .select()
