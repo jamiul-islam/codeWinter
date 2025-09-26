@@ -4,9 +4,7 @@ import { GraphCanvas, GraphSeed } from '@/components/graph'
 import { MarkdownPreview } from '@/components/prd'
 import { useAuth } from '@/components/providers'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { buttonClasses } from '@/components/ui/button.styles'
-import { cn } from '@/lib/utils'
+import { buttonClasses } from '@/components/ui/button'
 import { PageLoader } from '@/components/loaders'
 
 const exampleMarkdown = `# Architecture Graph → PRD

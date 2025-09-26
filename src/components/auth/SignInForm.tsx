@@ -8,8 +8,24 @@ import { useAuth } from '@/components/providers'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2 } from 'lucide-react'
 import { signInSchema } from '@/lib/schemas/auth-schema'
+
+const successIcon = (
+  <svg
+    className="h-6 w-6 text-cyan-300"
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+    aria-hidden
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M5 13l4 4L19 7"
+    />
+  </svg>
+)
 
 type FormValues = z.infer<typeof signInSchema>
 
@@ -22,7 +38,6 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  // Initialize React Hook Form
   const form = useForm<FormValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
@@ -32,6 +47,7 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
 
   const onSubmit = async (values: FormValues) => {
     setError(null)
+    setSuccess(false)
 
     try {
       const { error } = await signIn(values.email)
@@ -49,70 +65,55 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
 
   if (success) {
     return (
-      <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-6 text-center">
+      <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-6 text-center">
         <div className="mb-4 flex justify-center">
-          <div className="rounded-full bg-green-500/20 p-3">
-            <svg
-              className="h-6 w-6 text-green-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          </div>
+          <span className="flex size-12 items-center justify-center rounded-full bg-cyan-500/20">
+            {successIcon}
+          </span>
         </div>
-        <h3 className="mb-2 text-lg font-medium text-white">
-          Check your email
+        <h3 className="mb-2 text-lg font-semibold text-white">
+          Check your inbox
         </h3>
-        <p className="text-sm text-slate-300">
+        <p className="text-sm text-slate-200">
           We&apos;ve sent a magic link to{' '}
-          <strong>{form.getValues('email')}</strong>. Click the link to sign in.
+          <strong>{form.getValues('email')}</strong>. Follow the link to access
+          the dashboard.
         </p>
       </div>
     )
   }
 
+  const isSubmitting = form.formState.isSubmitting
+
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-      <div className="space-y-2">
-        <Label className="text-slate-200">Email address</Label>
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+      <div className="space-y-2 text-left">
+        <Label>Email</Label>
         <Input
           type="email"
-          placeholder="Enter your email"
-          disabled={form.formState.isSubmitting}
+          placeholder="name@example.com"
+          disabled={isSubmitting}
           {...form.register('email')}
-          className="mt-1 border-slate-600 bg-slate-700 text-white placeholder:text-slate-400"
         />
         {form.formState.errors.email && (
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-rose-300">
             {form.formState.errors.email.message}
           </p>
         )}
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3">
-          <p className="text-sm text-red-400">{error}</p>
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-100">
+          {error}
         </div>
       )}
 
-      <Button
-        type="submit"
-        disabled={form.formState.isSubmitting}
-        variant="primary"
-        className="w-full"
-      >
-        {form.formState.isSubmitting ? (
-          <div className="flex items-center justify-center">
-            <Loader2 className="mr-2 size-4 animate-spin" />
-            Sending magic link...
-          </div>
+      <Button type="submit" disabled={isSubmitting} size="lg" className="w-full">
+        {isSubmitting ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900/20 border-t-slate-900" />
+            Sending magic link…
+          </span>
         ) : (
           'Send magic link'
         )}

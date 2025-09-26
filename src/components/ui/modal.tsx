@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { cn } from '@/lib/utils/cn'
+import { cn } from '@/lib/utils'
 
 interface ModalProps {
   isOpen: boolean
@@ -14,8 +14,8 @@ export function Modal({ isOpen, onClose, children, className }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         onClose()
       }
     }
@@ -35,15 +35,13 @@ export function Modal({ isOpen, onClose, children, className }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm" />
 
-      {/* Modal Content */}
       <div
         ref={modalRef}
         className={cn(
-          'relative z-10 w-full max-w-md rounded-lg border border-slate-700 bg-slate-800 p-6 shadow-xl',
-          className
+          'relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/90 p-6 shadow-xl shadow-black/40',
+          className,
         )}
       >
         {children}
@@ -52,21 +50,16 @@ export function Modal({ isOpen, onClose, children, className }: ModalProps) {
   )
 }
 
-interface ModalHeaderProps {
+interface ModalSectionProps {
   children: React.ReactNode
   className?: string
 }
 
-export function ModalHeader({ children, className }: ModalHeaderProps) {
-  return <div className={cn('mb-4', className)}>{children}</div>
+export function ModalHeader({ children, className }: ModalSectionProps) {
+  return <div className={cn('mb-4 space-y-2', className)}>{children}</div>
 }
 
-interface ModalTitleProps {
-  children: React.ReactNode
-  className?: string
-}
-
-export function ModalTitle({ children, className }: ModalTitleProps) {
+export function ModalTitle({ children, className }: ModalSectionProps) {
   return (
     <h2 className={cn('text-lg font-semibold text-white', className)}>
       {children}
@@ -74,26 +67,16 @@ export function ModalTitle({ children, className }: ModalTitleProps) {
   )
 }
 
-interface ModalDescriptionProps {
-  children: React.ReactNode
-  className?: string
-}
-
 export function ModalDescription({
   children,
   className,
-}: ModalDescriptionProps) {
+}: ModalSectionProps) {
   return (
-    <p className={cn('mt-2 text-sm text-slate-400', className)}>{children}</p>
+    <p className={cn('text-sm text-slate-300', className)}>{children}</p>
   )
 }
 
-interface ModalFooterProps {
-  children: React.ReactNode
-  className?: string
-}
-
-export function ModalFooter({ children, className }: ModalFooterProps) {
+export function ModalFooter({ children, className }: ModalSectionProps) {
   return (
     <div className={cn('mt-6 flex justify-end gap-3', className)}>
       {children}
