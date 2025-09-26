@@ -4,6 +4,10 @@ import { useAuth } from '@/components/providers'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { buttonClasses } from '@/components/ui/button.styles'
+import { FolderOpen, Plus } from 'lucide-react'
+import { PageLoader } from '@/components/loaders'
 
 export default function DashboardPage() {
   const { user, signOut, isLoading } = useAuth()
@@ -20,14 +24,7 @@ export default function DashboardPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent"></div>
-          <p className="text-slate-300">Loading...</p>
-        </div>
-      </div>
-    )
+    return <PageLoader />
   }
 
   return (
@@ -39,18 +36,12 @@ export default function DashboardPage() {
           <p className="text-slate-400">Welcome back, {user?.email}</p>
         </div>
         <div className="flex items-center gap-4">
-          <Link
-            href="/settings"
-            className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
-          >
+          <Link className={buttonClasses({ size: 'sm' })} href="/settings">
             Settings
           </Link>
-          <button
-            onClick={handleSignOut}
-            className="rounded-lg bg-slate-700 px-4 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-600 hover:text-white"
-          >
+          <Button onClick={handleSignOut} variant="secondary" size="sm">
             Sign out
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -60,28 +51,16 @@ export default function DashboardPage() {
         <section>
           <div className="mb-6 flex items-center justify-between">
             <h2 className="text-xl font-medium text-white">Projects</h2>
-            <button className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-medium text-slate-900 transition-colors hover:bg-cyan-400">
+            <Button variant="primary" size="sm">
               New Project
-            </button>
+            </Button>
           </div>
 
           {/* Empty state */}
           <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-12 text-center">
             <div className="mb-4 flex justify-center">
               <div className="rounded-full bg-slate-700 p-3">
-                <svg
-                  className="h-6 w-6 text-slate-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                  />
-                </svg>
+                <FolderOpen className="size-10 text-slate-400" />
               </div>
             </div>
             <h3 className="mb-2 text-lg font-medium text-white">
@@ -91,9 +70,11 @@ export default function DashboardPage() {
               Create your first project to start building feature graphs and
               generating PRDs.
             </p>
-            <button className="rounded-lg bg-cyan-500 px-6 py-3 font-medium text-slate-900 transition-colors hover:bg-cyan-400">
-              Create your first project
-            </button>
+
+            <Button variant="primary" size="md">
+              {/* it should open a modal */}
+              <Plus className="size-4" /> Create your first project
+            </Button>
           </div>
         </section>
       </div>
