@@ -1,5 +1,13 @@
+'use client'
+
 import { GraphCanvas, GraphSeed } from '@/components/graph'
 import { MarkdownPreview } from '@/components/prd'
+import { useAuth } from '@/components/providers'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { buttonClasses } from '@/components/ui/button.styles'
+import { cn } from '@/lib/utils'
+import { PageLoader } from '@/components/loaders'
 
 const exampleMarkdown = `# Architecture Graph → PRD
 
@@ -17,6 +25,14 @@ Ensure every feature has a consistent narrative and references its dependencies.
 `
 
 export default function Home() {
+  const { isLoading } = useAuth()
+
+  if (isLoading) {
+    return <PageLoader />
+  }
+
+  // If user is authenticated, they'll be redirected by middleware
+  // This page is for unauthenticated users
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-12 px-6 pt-16 pb-24">
       <section className="space-y-4">
@@ -60,6 +76,24 @@ export default function Home() {
             </p>
           </div>
           <MarkdownPreview markdown={exampleMarkdown} />
+        </div>
+      </section>
+
+      {/* Call to action */}
+      <section className="mx-auto w-full max-w-md text-center">
+        <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-8">
+          <h2 className="mb-4 text-2xl font-medium text-white">
+            Ready to get started?
+          </h2>
+          <p className="mb-6 text-slate-400">
+            Sign in to create projects, build feature graphs, and generate
+            professional PRDs with AI.
+          </p>
+          <div className="space-y-3">
+            <Link className={buttonClasses({ size: 'lg' })} href="/signin">
+              Sign in to codeWinter
+            </Link>
+          </div>
         </div>
       </section>
     </main>

@@ -39,7 +39,7 @@ body {
   color: #0f172a;
 }
 
-a {
+/* a {
   color: var(--primary);
   text-decoration-color: color-mix(
     in srgb,
@@ -50,4 +50,4 @@ a {
 
 a:hover {
   color: color-mix(in srgb, var(--primary) 70%, white 30%);
-}
+} */
