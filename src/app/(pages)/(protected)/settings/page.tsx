@@ -2,36 +2,26 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/providers'
-import Link from 'next/link'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2, Trash2 } from 'lucide-react'
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+  Modal,
+  ModalHeader,
+  ModalTitle,
+  ModalDescription,
+  ModalFooter,
+} from '@/components/ui/modal'
+import { ArrowLeft, Loader2, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { settingsSchema } from '@/lib/schemas/settings-schema'
 import { useRouter } from 'next/navigation'
+import { buttonClasses } from '@/components/ui/button.styles'
+import { PageLoader } from '@/components/loaders'
+import Link from 'next/link'
 
 type FormValues = z.infer<typeof settingsSchema>
 
@@ -135,14 +125,7 @@ export default function SettingsPage() {
   }
 
   if (authLoading || isFetching) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent"></div>
-          <p className="text-slate-300">Loading...</p>
-        </div>
-      </div>
-    )
+    return <PageLoader />
   }
 
   return (
@@ -154,18 +137,12 @@ export default function SettingsPage() {
           <p className="text-slate-400">Manage your account and API keys</p>
         </div>
         <div className="flex items-center gap-4">
-          <Link
-            href="/dashboard"
-            className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
-          >
-            Back to Dashboard
+          <Link className={buttonClasses({ size: 'sm' })} href="/dashboard">
+            <ArrowLeft className="size-4" /> Back to Dashboard
           </Link>
-          <button
-            onClick={handleSignOut}
-            className="rounded-lg bg-slate-700 px-4 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-600 hover:text-white"
-          >
+          <Button onClick={handleSignOut} variant="secondary" size="sm">
             Sign out
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -179,7 +156,7 @@ export default function SettingsPage() {
               <Input
                 value={user?.email || ''}
                 readOnly
-                className="mt-2 border-slate-600 bg-slate-700 text-slate-300"
+                className="mt-1 border-slate-600 bg-slate-700 text-slate-300"
               />
             </div>
           </div>
@@ -208,13 +185,14 @@ export default function SettingsPage() {
                       <Input
                         value={settings.maskedKey}
                         readOnly
-                        className="flex-1 border-slate-600 bg-slate-700 font-mono text-slate-300"
+                        className="mt-1 flex-1 border-slate-600 bg-slate-700 font-mono text-slate-300"
                       />
                       <Button
-                        variant="destructive"
+                        variant="secondary"
                         size="sm"
                         onClick={() => setShowDeleteConfirm(true)}
                         disabled={isLoading}
+                        className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -237,88 +215,93 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="mt-4 space-y-4"
-                >
-                  <FormField
-                    control={form.control}
-                    name="gemini_api_key"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-slate-300">
-                          {settings?.maskedKey
-                            ? 'New API Key'
-                            : 'Gemini API Key'}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="password"
-                            placeholder="Enter your Gemini API key"
-                            disabled={form.formState.isSubmitting}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription className="text-slate-400">
-                          Your API key will be encrypted and stored securely.
-                        </FormDescription>
-                        <FormMessage className="text-red-400" />
-                      </FormItem>
-                    )}
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="mt-4 space-y-4"
+              >
+                <div className="space-y-2">
+                  <Label className="text-slate-300">
+                    {settings?.maskedKey ? 'New API Key' : 'Gemini API Key'}
+                  </Label>
+                  <Input
+                    type="password"
+                    placeholder="Enter your Gemini API key"
+                    disabled={form.formState.isSubmitting}
+                    {...form.register('gemini_api_key')}
+                    className="mt-1 border-slate-600 bg-slate-700 text-white placeholder:text-slate-400"
                   />
+                  {form.formState.errors.gemini_api_key && (
+                    <p className="text-sm text-red-400">
+                      {form.formState.errors.gemini_api_key.message}
+                    </p>
+                  )}
+                  <p className="text-sm text-slate-400">
+                    Your API key will be encrypted and stored securely.
+                  </p>
+                </div>
 
-                  <Button type="submit" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? (
-                      <div className="flex items-center">
-                        <Loader2 className="mr-2 size-4 animate-spin" />
-                        {settings?.maskedKey ? 'Updating...' : 'Saving...'}
-                      </div>
-                    ) : settings?.maskedKey ? (
-                      'Update API Key'
-                    ) : (
-                      'Save API Key'
-                    )}
-                  </Button>
-                </form>
-              </Form>
+                <Button
+                  type="submit"
+                  disabled={form.formState.isSubmitting}
+                  variant="primary"
+                >
+                  {form.formState.isSubmitting ? (
+                    <div className="flex items-center">
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      {settings?.maskedKey ? 'Updating...' : 'Saving...'}
+                    </div>
+                  ) : settings?.maskedKey ? (
+                    'Update API Key'
+                  ) : (
+                    'Save API Key'
+                  )}
+                </Button>
+              </form>
             </div>
           </div>
         </section>
       </div>
 
       {/* Delete confirmation dialog */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete API Key</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete your Gemini API key? You won't be
-              able to generate graphs or PRDs until you add a new key.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault()
-                handleDeleteKey()
-              }}
-              disabled={isLoading}
-              className="bg-red-600 text-white hover:bg-red-700"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                'Delete'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Modal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+      >
+        <ModalHeader>
+          <ModalTitle>Delete API Key</ModalTitle>
+          <ModalDescription>
+            Are you sure you want to delete your Gemini API key? You won&apos;t
+            be able to generate graphs or PRDs until you add a new key.
+          </ModalDescription>
+        </ModalHeader>
+        <ModalFooter>
+          <Button
+            variant="secondary"
+            disabled={isLoading}
+            onClick={() => setShowDeleteConfirm(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={(e: React.MouseEvent) => {
+              e.preventDefault()
+              handleDeleteKey()
+            }}
+            disabled={isLoading}
+            className="bg-red-600 text-white hover:bg-red-700"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              'Delete'
+            )}
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   )
 }
