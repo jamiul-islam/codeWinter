@@ -7,14 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuth } from '@/components/providers'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
 import { signInSchema } from '@/lib/schemas/auth-schema'
 
@@ -86,48 +79,44 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-slate-200">Email address</FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  disabled={form.formState.isSubmitting}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage className="text-red-400" />
-            </FormItem>
-          )}
-        />
-
-        {error && (
-          <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3">
-            <p className="text-sm text-red-400">{error}</p>
-          </div>
-        )}
-
-        <Button
-          type="submit"
+    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <div className="space-y-2">
+        <Label className="text-slate-200">Email address</Label>
+        <Input
+          type="email"
+          placeholder="Enter your email"
           disabled={form.formState.isSubmitting}
-          className="w-full"
-        >
-          {form.formState.isSubmitting ? (
-            <div className="flex items-center justify-center">
-              <Loader2 className="mr-2 size-4 animate-spin" />
-              Sending magic link...
-            </div>
-          ) : (
-            'Send magic link'
-          )}
-        </Button>
-      </form>
-    </Form>
+          {...form.register('email')}
+          className="mt-1 border-slate-600 bg-slate-700 text-white placeholder:text-slate-400"
+        />
+        {form.formState.errors.email && (
+          <p className="text-sm text-red-400">
+            {form.formState.errors.email.message}
+          </p>
+        )}
+      </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3">
+          <p className="text-sm text-red-400">{error}</p>
+        </div>
+      )}
+
+      <Button
+        type="submit"
+        disabled={form.formState.isSubmitting}
+        variant="primary"
+        className="w-full"
+      >
+        {form.formState.isSubmitting ? (
+          <div className="flex items-center justify-center">
+            <Loader2 className="mr-2 size-4 animate-spin" />
+            Sending magic link...
+          </div>
+        ) : (
+          'Send magic link'
+        )}
+      </Button>
+    </form>
   )
 }
