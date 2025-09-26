@@ -1,8 +1,13 @@
 'use client'
 
 import { forwardRef } from 'react'
-import { cn } from '@/lib/utils/cn'
-import { buttonClasses, ButtonVariant, ButtonSize } from './button.styles'
+import { cn } from '@/lib/utils'
+
+import {
+  buttonClasses,
+  type ButtonSize,
+  type ButtonVariant,
+} from '@/components/ui/button-classes'
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -13,7 +18,7 @@ export interface ButtonProps
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     { className, variant = 'primary', size = 'md', type = 'button', ...props },
-    ref
+    ref,
   ) => (
     <button
       ref={ref}
@@ -21,7 +26,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       className={cn(buttonClasses({ variant, size }), className)}
       {...props}
     />
-  )
+  ),
 )
 
 Button.displayName = 'Button'

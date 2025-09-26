@@ -1,13 +1,9 @@
-'use client'
+import Link from 'next/link'
 
 import { GraphCanvas, GraphSeed } from '@/components/graph'
 import { MarkdownPreview } from '@/components/prd'
-import { useAuth } from '@/components/providers'
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { buttonClasses } from '@/components/ui/button.styles'
-import { cn } from '@/lib/utils'
-import { PageLoader } from '@/components/loaders'
+import { buttonClasses } from '@/components/ui/button-classes'
+import { getServerSupabaseClient } from '@/lib/supabase/server'
 
 const exampleMarkdown = `# Architecture Graph → PRD
 
@@ -15,7 +11,7 @@ const exampleMarkdown = `# Architecture Graph → PRD
 Ensure every feature has a consistent narrative and references its dependencies.
 
 ## Scope
-**In:** Feature outlines, graph relationships, Supabase metadata\
+**In:** Feature outlines, graph relationships, Supabase metadata\\
 **Out:** Sprint tasks, burndown charts
 
 ## Acceptance Criteria
@@ -24,19 +20,34 @@ Ensure every feature has a consistent narrative and references its dependencies.
 - [ ] Downloaded markdown uses deterministic filenames
 `
 
-export default function Home() {
-  const { isLoading } = useAuth()
+export default async function Home() {
+  const supabase = await getServerSupabaseClient()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
 
-  if (isLoading) {
-    return <PageLoader />
-  }
+  const primaryHref = session ? '/dashboard' : '/signin'
+  const primaryLabel = session ? 'Go to dashboard' : 'Sign in to codeWinter'
 
-  // If user is authenticated, they'll be redirected by middleware
-  // This page is for unauthenticated users
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-12 px-6 pt-16 pb-24">
+    <main className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-12 px-6 pt-16 pb-24">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+      <div className="pointer-events-none absolute left-1/2 top-10 -z-10 h-72 w-72 -translate-x-1/2 rounded-full bg-cyan-500/10 blur-3xl" />
+
+      <header className="flex items-center justify-between">
+        <Link
+          href="/"
+          className="text-lg font-semibold text-white transition hover:text-cyan-200"
+        >
+          code<span className="text-cyan-300">Winter</span> ❄️
+        </Link>
+        <Link className={buttonClasses({ size: 'sm' })} href={primaryHref}>
+          {primaryLabel}
+        </Link>
+      </header>
+
       <section className="space-y-4">
-        <p className="text-sm tracking-[0.35em] text-cyan-300/80 uppercase">
+        <p className="text-sm uppercase tracking-[0.35em] text-cyan-300/80">
           codeWinter • Preview
         </p>
         <h1 className="text-4xl font-semibold text-white sm:text-5xl">
@@ -60,7 +71,7 @@ export default function Home() {
                 React Flow seeded via Zustand store
               </p>
             </div>
-            <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs tracking-wide text-cyan-200 uppercase">
+            <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs uppercase tracking-wide text-cyan-200">
               Live Preview
             </span>
           </div>
@@ -77,25 +88,7 @@ export default function Home() {
           </div>
           <MarkdownPreview markdown={exampleMarkdown} />
         </div>
-      </section>
-
-      {/* Call to action */}
-      <section className="mx-auto w-full max-w-md text-center">
-        <div className="rounded-lg border border-slate-700 bg-slate-800/50 p-8">
-          <h2 className="mb-4 text-2xl font-medium text-white">
-            Ready to get started?
-          </h2>
-          <p className="mb-6 text-slate-400">
-            Sign in to create projects, build feature graphs, and generate
-            professional PRDs with AI.
-          </p>
-          <div className="space-y-3">
-            <Link className={buttonClasses({ size: 'lg' })} href="/signin">
-              Sign in to codeWinter
-            </Link>
-          </div>
-        </div>
-      </section>
+      </section>      
     </main>
   )
 }

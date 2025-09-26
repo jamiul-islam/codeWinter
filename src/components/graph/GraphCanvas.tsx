@@ -21,9 +21,9 @@ export function GraphCanvas() {
           status: node.status,
         },
         className:
-          'rounded-xl border border-slate-700 bg-slate-900/60 px-4 py-2 text-sm',
+          'rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-2 text-sm text-slate-200 shadow-inner shadow-black/20',
       })),
-    [nodes]
+    [nodes],
   )
 
   const reactFlowEdges = useMemo<Edge[]>(
@@ -34,14 +34,14 @@ export function GraphCanvas() {
         target: node.id,
         animated: node.status === 'generating',
       })),
-    [nodes]
+    [nodes],
   )
 
   return (
-    <div className="h-[420px] w-full overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 p-4">
+    <div className="h-[420px] w-full overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/20">
       <ReactFlow nodes={reactFlowNodes} edges={reactFlowEdges} fitView>
-        <Background color="rgba(148, 163, 184, 0.15)" gap={18} size={1} />
-        <MiniMap pannable zoomable nodeColor={() => '#38bdf8'} />
+        <Background color="rgba(148, 163, 184, 0.2)" gap={24} size={1} />
+        <MiniMap pannable zoomable nodeColor={() => '#67e8f9'} />
         <Controls position="bottom-left" showInteractive={false} />
       </ReactFlow>
     </div>

@@ -1,27 +1,26 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/components/providers'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+
+import { useAuth } from '@/components/providers'
 import { Button } from '@/components/ui/button'
+import { buttonClasses } from '@/components/ui/button-classes'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Modal,
-  ModalHeader,
-  ModalTitle,
   ModalDescription,
   ModalFooter,
+  ModalHeader,
+  ModalTitle,
 } from '@/components/ui/modal'
-import { ArrowLeft, Loader2, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
-import { settingsSchema } from '@/lib/schemas/settings-schema'
-import { useRouter } from 'next/navigation'
-import { buttonClasses } from '@/components/ui/button.styles'
 import { PageLoader } from '@/components/loaders'
-import Link from 'next/link'
+import { settingsSchema } from '@/lib/schemas/settings-schema'
 
 type FormValues = z.infer<typeof settingsSchema>
 
@@ -29,15 +28,20 @@ interface ApiKeySettings {
   maskedKey: string | null
 }
 
+type FeedbackState = {
+  type: 'success' | 'error'
+  message: string
+}
+
 export default function SettingsPage() {
   const { user, signOut, isLoading: authLoading } = useAuth()
   const [settings, setSettings] = useState<ApiKeySettings | null>(null)
   const [isFetching, setIsFetching] = useState(true)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [feedback, setFeedback] = useState<FeedbackState | null>(null)
   const router = useRouter()
 
-  // Initialize React Hook Form
   const form = useForm<FormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
@@ -45,13 +49,14 @@ export default function SettingsPage() {
     },
   })
 
-  // Fetch current settings
   const fetchSettings = async () => {
     try {
       const response = await fetch('/api/settings/key')
       if (response.ok) {
         const data = await response.json()
         setSettings({ maskedKey: data.data.maskedKey })
+      } else {
+        setSettings({ maskedKey: null })
       }
     } catch (error) {
       console.error('Failed to fetch settings:', error)
@@ -67,6 +72,7 @@ export default function SettingsPage() {
   }, [user])
 
   const onSubmit = async (values: FormValues) => {
+    setFeedback(null)
     try {
       const response = await fetch('/api/settings/key', {
         method: 'POST',
@@ -74,53 +80,58 @@ export default function SettingsPage() {
         body: JSON.stringify(values),
       })
 
+      const data = await response.json()
+
       if (response.ok) {
         form.reset()
         fetchSettings()
-        toast.success('API key saved successfully!')
+        setFeedback({ type: 'success', message: 'API key saved successfully.' })
       } else {
-        const errorData = await response.json()
-        toast.error(errorData.message || 'Failed to save API key')
+        setFeedback({
+          type: 'error',
+          message: data.message || 'Failed to save API key.',
+        })
       }
     } catch (error) {
       console.error('Failed to save API key:', error)
-      toast.error('Failed to save API key')
+      setFeedback({ type: 'error', message: 'Unable to save API key right now.' })
     }
   }
 
   const handleDeleteKey = async () => {
-    setIsLoading(true)
+    setIsDeleting(true)
+    setFeedback(null)
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 4000))
       const response = await fetch('/api/settings/key', {
         method: 'DELETE',
       })
-
       const data = await response.json()
 
       if (response.ok) {
-        toast.success('API key deleted successfully')
         setSettings({ maskedKey: null })
         setShowDeleteConfirm(false)
+        setFeedback({ type: 'success', message: 'API key deleted.' })
       } else {
-        toast.error(data.message || 'Failed to delete API key')
+        setFeedback({
+          type: 'error',
+          message: data.message || 'Failed to delete API key.',
+        })
       }
     } catch (error) {
       console.error('Failed to delete API key:', error)
-      toast.error('Failed to delete API key')
+      setFeedback({ type: 'error', message: 'Unable to delete API key right now.' })
     } finally {
-      setIsLoading(false)
+      setIsDeleting(false)
     }
   }
 
   const handleSignOut = async () => {
     const { error } = await signOut()
     if (error) {
-      toast.error('Failed to sign out')
+      setFeedback({ type: 'error', message: 'Failed to sign out.' })
       return
     }
-    // redirect to sign in page
     router.push('/signin')
   }
 
@@ -128,180 +139,159 @@ export default function SettingsPage() {
     return <PageLoader />
   }
 
+  const cardClass =
+    'rounded-3xl border border-white/10 bg-white/5 shadow-inner shadow-black/30 backdrop-blur'
+
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
-      {/* Header */}
-      <header className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold text-white">Settings</h1>
-          <p className="text-slate-400">Manage your account and API keys</p>
+    <main className="relative isolate mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-10 px-6 py-16">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
+      <div className="pointer-events-none absolute left-12 top-28 -z-10 hidden h-60 w-60 rounded-full bg-cyan-500/15 blur-3xl md:block" />
+      <div className="pointer-events-none absolute bottom-8 right-0 -z-10 h-52 w-52 rounded-full bg-purple-500/10 blur-3xl" />
+
+      <header className={`${cardClass} flex flex-col gap-6 p-8 sm:flex-row sm:items-end sm:justify-between`}>
+        <div className="space-y-3">
+          <p className="text-xs uppercase tracking-[0.35em] text-cyan-200/70">Account</p>
+          <div>
+            <h1 className="text-3xl font-semibold text-white">Settings</h1>
+            <p className="mt-2 max-w-xl text-sm text-slate-300">
+              Keep your workspace in sync, manage your Gemini credentials, and stay ready to generate new PRDs.
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <Link className={buttonClasses({ size: 'sm' })} href="/dashboard">
-            <ArrowLeft className="size-4" /> Back to Dashboard
+        <div className="flex items-center gap-3">
+          <Link className={buttonClasses({ variant: 'secondary', size: 'sm' })} href="/dashboard">
+            Back to dashboard
           </Link>
-          <Button onClick={handleSignOut} variant="secondary" size="sm">
+          <Button onClick={handleSignOut} variant="ghost" size="sm">
             Sign out
           </Button>
         </div>
       </header>
 
-      <div className="space-y-8">
-        {/* Account section */}
-        <section className="rounded-lg border border-slate-700 bg-slate-800/50 p-6">
-          <h2 className="mb-4 text-xl font-medium text-white">Account</h2>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-slate-300">Email</Label>
-              <Input
-                value={user?.email || ''}
-                readOnly
-                className="mt-1 border-slate-600 bg-slate-700 text-slate-300"
-              />
-            </div>
+      {feedback && (
+        <div
+          className={`${cardClass} p-4 text-sm ${
+            feedback.type === 'success'
+              ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-100'
+              : 'border-rose-500/30 bg-rose-500/10 text-rose-100'
+          }`}
+        >
+          {feedback.message}
+        </div>
+      )}
+
+      <div className="space-y-10">
+        <section className={`${cardClass} p-8`}>
+          <h2 className="text-xl font-semibold text-white">Profile</h2>
+          <p className="mt-2 text-sm text-slate-300">
+            These details help us personalise your workspace.
+          </p>
+          <div className="mt-6 space-y-3">
+            <Label>Email address</Label>
+            <Input value={user?.email || ''} readOnly />
           </div>
         </section>
 
-        {/* API Keys section */}
-        <section className="rounded-lg border border-slate-700 bg-slate-800/50 p-6">
-          <h2 className="mb-4 text-xl font-medium text-white">API Keys</h2>
-
-          {/* Gemini API Key */}
-          <div className="space-y-4">
+        <section className={`${cardClass} p-8`}>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h3 className="mb-2 text-lg font-medium text-white">
-                Gemini API Key
-              </h3>
-              <p className="mb-4 text-sm text-slate-400">
-                Required for generating feature graphs and PRDs using
-                Google&apos;s Gemini AI.
+              <h2 className="text-xl font-semibold text-white">Gemini API key</h2>
+              <p className="mt-2 text-sm text-slate-300">
+                Add your API key to enable graph-to-PRD generation from inside the dashboard.
               </p>
-
-              {settings?.maskedKey ? (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-slate-300">Current API Key</Label>
-                    <div className="flex items-center gap-4">
-                      <Input
-                        value={settings.maskedKey}
-                        readOnly
-                        className="mt-1 flex-1 border-slate-600 bg-slate-700 font-mono text-slate-300"
-                      />
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setShowDeleteConfirm(true)}
-                        disabled={isLoading}
-                        className="border-red-600 text-red-400 hover:bg-red-600 hover:text-white"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2">
-                    <p className="text-sm text-amber-200">
-                      <strong>Update API Key:</strong> Enter a new key below to
-                      replace the current one.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="mb-4 rounded-lg border border-blue-500/20 bg-blue-500/10 p-2">
-                  <p className="text-sm text-blue-200">
-                    <strong>No API key configured.</strong> You&apos;ll need to
-                    add a Gemini API key to generate graphs and PRDs.
-                  </p>
-                </div>
-              )}
-
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="mt-4 space-y-4"
-              >
-                <div className="space-y-2">
-                  <Label className="text-slate-300">
-                    {settings?.maskedKey ? 'New API Key' : 'Gemini API Key'}
-                  </Label>
-                  <Input
-                    type="password"
-                    placeholder="Enter your Gemini API key"
-                    disabled={form.formState.isSubmitting}
-                    {...form.register('gemini_api_key')}
-                    className="mt-1 border-slate-600 bg-slate-700 text-white placeholder:text-slate-400"
-                  />
-                  {form.formState.errors.gemini_api_key && (
-                    <p className="text-sm text-red-400">
-                      {form.formState.errors.gemini_api_key.message}
-                    </p>
-                  )}
-                  <p className="text-sm text-slate-400">
-                    Your API key will be encrypted and stored securely.
-                  </p>
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={form.formState.isSubmitting}
-                  variant="primary"
-                >
-                  {form.formState.isSubmitting ? (
-                    <div className="flex items-center">
-                      <Loader2 className="mr-2 size-4 animate-spin" />
-                      {settings?.maskedKey ? 'Updating...' : 'Saving...'}
-                    </div>
-                  ) : settings?.maskedKey ? (
-                    'Update API Key'
-                  ) : (
-                    'Save API Key'
-                  )}
-                </Button>
-              </form>
             </div>
+            {settings?.maskedKey && (
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-sm text-rose-300 underline-offset-4 transition hover:text-rose-200 hover:underline"
+              >
+                Remove current key
+              </button>
+            )}
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {settings?.maskedKey ? (
+              <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-left">
+                <Label className="text-slate-200">Stored key</Label>
+                <Input value={settings.maskedKey} readOnly className="mt-2 font-mono" />
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+                No key saved yet. Paste your Gemini API key below to enable generation.
+              </div>
+            )}
+
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label>{settings?.maskedKey ? 'Replace with new key' : 'Gemini API key'}</Label>
+                <Input
+                  type="password"
+                  placeholder="Paste your key"
+                  disabled={form.formState.isSubmitting}
+                  {...form.register('gemini_api_key')}
+                />
+                {form.formState.errors.gemini_api_key && (
+                  <p className="text-sm text-rose-200">
+                    {form.formState.errors.gemini_api_key.message}
+                  </p>
+                )}
+                <p className="text-xs text-slate-400">
+                  We encrypt keys using your project&apos;s secret before storing them in Supabase.
+                </p>
+              </div>
+
+              <Button
+                type="submit"
+                size="md"
+                disabled={form.formState.isSubmitting}
+                className="px-6"
+              >
+                {form.formState.isSubmitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900/20 border-t-slate-900" />
+                    Saving…
+                  </span>
+                ) : settings?.maskedKey ? (
+                  'Update key'
+                ) : (
+                  'Save key'
+                )}
+              </Button>
+            </form>
           </div>
         </section>
       </div>
 
-      {/* Delete confirmation dialog */}
-      <Modal
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-      >
+      <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)}>
         <ModalHeader>
-          <ModalTitle>Delete API Key</ModalTitle>
+          <ModalTitle>Delete API key</ModalTitle>
           <ModalDescription>
-            Are you sure you want to delete your Gemini API key? You won&apos;t
-            be able to generate graphs or PRDs until you add a new key.
+            Removing the key will stop PRD generation until a new one is added.
           </ModalDescription>
         </ModalHeader>
         <ModalFooter>
-          <Button
-            variant="secondary"
-            disabled={isLoading}
-            onClick={() => setShowDeleteConfirm(false)}
-          >
+          <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>
             Cancel
           </Button>
           <Button
             variant="primary"
-            onClick={(e: React.MouseEvent) => {
-              e.preventDefault()
-              handleDeleteKey()
-            }}
-            disabled={isLoading}
-            className="bg-red-600 text-white hover:bg-red-700"
+            onClick={handleDeleteKey}
+            disabled={isDeleting}
+            className="bg-rose-500 hover:bg-rose-400"
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 size-4 animate-spin" />
-                Deleting...
-              </>
+            {isDeleting ? (
+              <span className="flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-rose-900/20 border-t-rose-100" />
+                Deleting…
+              </span>
             ) : (
-              'Delete'
+              'Delete key'
             )}
           </Button>
         </ModalFooter>
       </Modal>
-    </div>
+    </main>
   )
 }
