@@ -1,4 +1,4 @@
-export * from './api-key'
+export * from './user-settings'
 export * from './audit'
 export * from './base'
 export * from './feature'

@@ -9,34 +9,22 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      api_keys: {
+      user_settings: {
         Row: {
-          id: string
           user_id: string
-          provider: string
-          encrypted_value: string
-          key_checksum: string | null
-          last_four: string | null
+          gemini_api_key: string | null
           created_at: string
           updated_at: string
         }
         Insert: {
-          id?: string
           user_id: string
-          provider?: string
-          encrypted_value: string
-          key_checksum?: string | null
-          last_four?: string | null
+          gemini_api_key?: string | null
           created_at?: string
           updated_at?: string
         }
         Update: {
-          id?: string
           user_id?: string
-          provider?: string
-          encrypted_value?: string
-          key_checksum?: string | null
-          last_four?: string | null
+          gemini_api_key?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -104,7 +92,6 @@ export type Database = {
           {
             foreignKeyName: 'features_project_id_fkey'
             columns: ['project_id']
-            isOneToOne: false
             referencedRelation: 'projects'
             referencedColumns: ['id']
           }
@@ -139,21 +126,18 @@ export type Database = {
           {
             foreignKeyName: 'feature_edges_project_id_fkey'
             columns: ['project_id']
-            isOneToOne: false
             referencedRelation: 'projects'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'feature_edges_source_feature_id_fkey'
             columns: ['source_feature_id']
-            isOneToOne: false
             referencedRelation: 'features'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'feature_edges_target_feature_id_fkey'
             columns: ['target_feature_id']
-            isOneToOne: false
             referencedRelation: 'features'
             referencedColumns: ['id']
           }
@@ -206,7 +190,6 @@ export type Database = {
           {
             foreignKeyName: 'feature_prds_feature_id_fkey'
             columns: ['feature_id']
-            isOneToOne: true
             referencedRelation: 'features'
             referencedColumns: ['id']
           }
@@ -256,7 +239,6 @@ export type Database = {
           {
             foreignKeyName: 'feature_prd_versions_feature_id_fkey'
             columns: ['feature_id']
-            isOneToOne: false
             referencedRelation: 'features'
             referencedColumns: ['id']
           }
@@ -294,14 +276,12 @@ export type Database = {
           {
             foreignKeyName: 'audit_logs_project_id_fkey'
             columns: ['project_id']
-            isOneToOne: false
             referencedRelation: 'projects'
             referencedColumns: ['id']
           },
           {
             foreignKeyName: 'audit_logs_feature_id_fkey'
             columns: ['feature_id']
-            isOneToOne: false
             referencedRelation: 'features'
             referencedColumns: ['id']
           }
