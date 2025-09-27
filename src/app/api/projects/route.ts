@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server"
-import { z } from "zod"
+import { z, ZodError } from "zod"
 import { getServerSupabaseClient } from "@/lib/supabase/server"
 
 // Validation schema
 const schema = z.object({
-  name: z.string().min(3),
-  description: z.string().min(10),
-  features: z.array(z.string().min(2)).min(5).max(10),
+  name: z.string().min(3, "Project name must be at least 3 characters"),
+  description: z.string().min(10, "Description must be at least 10 characters").or(z.literal('')), // allow empty
+  features: z.array(z.string().min(2, "Feature must be at least 2 characters")).min(5, "Add at least 5 features").max(10, "Maximum 10 features allowed"),
 })
 
 export async function POST(req: Request) {
@@ -15,10 +15,9 @@ export async function POST(req: Request) {
     const parsed = schema.safeParse(body)
 
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: parsed.error.errors },
-        { status: 400 }
-      )
+      const zodError = parsed.error as ZodError
+      const messages = zodError.errors.map(e => e.message)
+      return NextResponse.json({ error: messages }, { status: 400 })
     }
 
     const { name, description, features } = parsed.data
@@ -26,7 +25,7 @@ export async function POST(req: Request) {
     // Supabase server client
     const supabase = await getServerSupabaseClient()
 
-    // get current user from auth
+    // Get current user from auth
     const {
       data: { user },
       error: userError,
@@ -36,29 +35,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // insert project
+    // Insert project
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .insert([
-        {
-          user_id: user.id,
-          name,
-          description,
-          graph: null,
-        },
-      ])
+      .insert([{ user_id: user.id, name, description, graph: null }])
       .select()
       .single()
 
-    if (projectError) {
+    if (projectError || !project) {
       return NextResponse.json(
-        { error: projectError.message },
+        { error: projectError?.message || "Failed to create project" },
         { status: 500 }
       )
     }
 
-    // insert related features
-    const featureRows = features.map((title) => ({
+    // Insert related features
+    const featureRows = features.map(title => ({
       project_id: project.id,
       title,
     }))
@@ -77,9 +69,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ projectId: project.id }, { status: 201 })
   } catch (err) {
     console.error("API error:", err)
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 })
   }
 }
