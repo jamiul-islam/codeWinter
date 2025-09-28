@@ -1,6 +1,11 @@
 'use client'
 
-import { useForm, useFieldArray, type FieldArrayPath, type FieldValues } from 'react-hook-form'
+import {
+  useForm,
+  useFieldArray,
+  type FieldArrayPath,
+  type FieldValues,
+} from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
@@ -34,7 +39,7 @@ export interface ProjectFormData extends FieldValues {
 interface NewProjectDialogProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (data: ProjectFormData) => void
+  onSubmit: (data: ProjectFormData) => Promise<void>
 }
 
 export default function NewProjectDialog({
@@ -46,10 +51,14 @@ export default function NewProjectDialog({
     register,
     handleSubmit,
     control,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
-    defaultValues: { name: '', description: '', features: ['', '', '', '', ''] }, // start with 5 inputs
+    defaultValues: {
+      name: '',
+      description: '',
+      features: ['', '', '', '', ''],
+    }, // start with 5 inputs
     mode: 'onChange', // validate on change
   })
 
@@ -60,9 +69,13 @@ export default function NewProjectDialog({
     name: featuresFieldName,
   })
 
-  const submitHandler = (data: ProjectFormData) => {
-    onSubmit(data)
-    onClose()
+  const submitHandler = async (data: ProjectFormData) => {
+    try {
+      await onSubmit(data)
+      onClose()
+    } catch (error) {
+      console.error(error)
+    }
   }
 
   return (
@@ -90,12 +103,10 @@ export default function NewProjectDialog({
           <textarea
             id="description"
             {...register('description')}
-            className="h-28 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-cyan-300/80 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
+            className="h-28 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-cyan-300/80 focus:ring-2 focus:ring-cyan-300/60 focus:outline-none"
           />
           {errors.description && (
-            <p className="text-sm text-red-400">
-              {errors.description.message}
-            </p>
+            <p className="text-sm text-red-400">{errors.description.message}</p>
           )}
         </div>
 
@@ -136,10 +147,26 @@ export default function NewProjectDialog({
         </div>
 
         <ModalFooter>
-          <Button type="button" variant="secondary" onClick={onClose}>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={isSubmitting}
+            onClick={onClose}
+          >
             Cancel
           </Button>
-          <Button type="submit">Create Project</Button>
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? (
+              <>
+                <span className="flex items-center justify-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900/20 border-t-slate-900" />
+                  Creating Project...
+                </span>
+              </>
+            ) : (
+              'Create Project'
+            )}
+          </Button>
         </ModalFooter>
       </form>
     </Modal>
