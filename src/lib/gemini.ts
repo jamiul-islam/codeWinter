@@ -2,7 +2,6 @@ import crypto from 'crypto'
 
 const ALGORITHM = 'aes-256-gcm' // AES with authentication
 const IV_LENGTH = 16 // 128-bit IV
-const TAG_LENGTH = 16 // 128-bit authentication tag
 
 // Encrypt the API key
 export function encryptApiKey(apiKey: string): string {
@@ -25,9 +24,10 @@ export function encryptApiKey(apiKey: string): string {
 
     // Return iv:tag:encrypted as hex string
     return `${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`
-  } catch (error: any) {
-    console.error('Failed to encrypt API key:', error)
-    throw error
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to encrypt API key'
+    console.error('Failed to encrypt API key:', message)
+    throw (error instanceof Error ? error : new Error(message))
   }
 }
 
@@ -54,9 +54,10 @@ export function decryptApiKey(encryptedString: string): string {
       decipher.final(),
     ])
     return decrypted.toString('utf8')
-  } catch (error: any) {
-    console.error('Failed to decrypt API key:', error)
-    throw error
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to decrypt API key'
+    console.error('Failed to decrypt API key:', message)
+    throw (error instanceof Error ? error : new Error(message))
   }
 }
 
@@ -73,12 +74,18 @@ export function maskApiKey(apiKey: string, visibleChars = 4): string {
 }
 
 // Verify the API key
-export async function verifyGeminiAPIKey(apiKey: string) {
+type GeminiErrorResponse = {
+  error?: {
+    message?: string
+  }
+}
+
+export async function verifyGeminiAPIKey(apiKey: string): Promise<boolean> {
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
 
   try {
     const response = await fetch(apiUrl)
-    console.log('Response Status:', response)
+    console.log('Gemini key validation status:', response.status)
 
     if (response.ok) {
       // The response status is in the 200-299 range, which indicates success.
@@ -86,14 +93,15 @@ export async function verifyGeminiAPIKey(apiKey: string) {
       return true
     } else {
       // The response status is an error (e.g., 401 Unauthorized, 403 Forbidden).
-      const errorData = await response.json()
+      const errorData = (await response.json()) as GeminiErrorResponse
       const errorMessage = errorData.error?.message || 'Invalid API key'
       console.error(`API key validation failed: ${errorMessage}`)
       return false
     }
-  } catch (error: any) {
+  } catch (error) {
     // This catches network errors or other issues.
-    console.error(`An error occurred: ${error.message}`)
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error(`An error occurred while validating Gemini API key: ${message}`)
     return false
   }
 }

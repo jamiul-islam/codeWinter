@@ -2,16 +2,27 @@
 
 import { useEffect } from 'react'
 
-import { useProjectStore } from '@/lib/store'
+import { useProjectStore, type FeatureNodeState } from '@/lib/store'
 
-const demoNodes = [
-  { id: 'project-intake', title: 'Project Intake', status: 'ready' as const },
+const demoNodes: FeatureNodeState[] = [
+  {
+    id: 'project-intake',
+    position: { x: 0, y: 0 },
+    data: { label: 'Project Intake' },
+    status: 'ready',
+  },
   {
     id: 'graph-orchestrator',
-    title: 'Graph Orchestrator',
-    status: 'generating' as const,
+    position: { x: 220, y: 60 },
+    data: { label: 'Graph Orchestrator' },
+    status: 'generating',
   },
-  { id: 'prd-writer', title: 'PRD Writer', status: 'idle' as const },
+  {
+    id: 'prd-writer',
+    position: { x: 440, y: 0 },
+    data: { label: 'PRD Writer' },
+    status: 'idle',
+  },
 ]
 
 export function GraphSeed() {

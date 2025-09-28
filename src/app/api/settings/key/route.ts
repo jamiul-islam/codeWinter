@@ -70,11 +70,9 @@ export async function POST(request: NextRequest) {
       updated_at: new Date().toISOString(),
     }
 
-    const upsertQuery = (supabase as any)
+    const { error: upsertError } = await supabase
       .from('user_settings')
       .upsert(insertData)
-
-    const { error: upsertError } = await upsertQuery
 
     if (upsertError) {
       return NextResponse.json(
@@ -94,13 +92,13 @@ export async function POST(request: NextRequest) {
         apiKey: maskApiKey(gemini_api_key),
       },
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Unexpected error:', error)
+    const message = error instanceof Error ? error.message : 'Unexpected error'
     return NextResponse.json(
       {
         success: false,
-        message: 'Unexpected error',
-        error,
+        message,
       },
       { status: 500 }
     )
@@ -127,9 +125,6 @@ export async function GET() {
         { status: 401 }
       )
     }
-
-    // Define the interface for user settings
-    type UserSettings = Database['public']['Tables']['user_settings']['Row']
 
     // Get user settings with proper typing
     const { data: settings, error: fetchError } = await supabase
@@ -162,12 +157,11 @@ export async function GET() {
       })
     }
 
-    const userSettings: UserSettings = settings
     let maskedKey: string | null = null
 
-    if (userSettings?.gemini_api_key) {
+    if (settings?.gemini_api_key) {
       try {
-        const decryptedKey = decryptApiKey(userSettings.gemini_api_key)
+        const decryptedKey = decryptApiKey(settings.gemini_api_key)
         maskedKey = maskApiKey(decryptedKey)
       } catch (error) {
         console.error('Failed to decrypt API key in route:', error)
@@ -182,13 +176,13 @@ export async function GET() {
         maskedKey: maskedKey,
       },
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Unexpected error:', error)
+    const message = error instanceof Error ? error.message : 'Unexpected error'
     return NextResponse.json(
       {
         success: false,
-        message: 'Unexpected error',
-        error,
+        message,
       },
       { status: 500 }
     )
@@ -240,13 +234,13 @@ export async function DELETE() {
       success: true,
       message: 'API key deleted successfully',
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Unexpected error:', error)
+    const message = error instanceof Error ? error.message : 'Unexpected error'
     return NextResponse.json(
       {
         success: false,
-        message: 'Unexpected error',
-        error,
+        message,
       },
       { status: 500 }
     )

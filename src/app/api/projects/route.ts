@@ -57,16 +57,17 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ message: 'Project created successfully', project })
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 })
     }
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    const message = error instanceof Error ? error.message : 'Failed to create project'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
 // GET: Fetch all projects for the logged-in user
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const supabase = await getServerSupabaseClient()
 
@@ -89,7 +90,8 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ projects })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Failed to fetch projects' }, { status: 500 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch projects'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -229,7 +229,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -237,13 +237,31 @@ import { useAuth } from '@/components/providers'
 import { Button } from '@/components/ui/button'
 import { buttonClasses } from '@/components/ui/button-classes'
 import { PageLoader } from '@/components/loaders'
-import NewProjectDialog from '@/components/dashboard/NewProjectDialog'
+import NewProjectDialog, {
+  type ProjectFormData,
+} from '@/components/dashboard/NewProjectDialog'
 
 type Project = {
   id: string
   name: string
   updated_at: string
   prdCount: number
+}
+
+type ProjectsResponse = {
+  projects: Array<{
+    id: string
+    name: string
+    updated_at: string
+  }>
+}
+
+type ErrorResponse = {
+  error?: string
+}
+
+type PrdCountResponse = {
+  count?: number
 }
 
 export default function DashboardPage() {
@@ -263,14 +281,45 @@ export default function DashboardPage() {
     router.push('/')
   }
 
-  const handleNewProjectSubmit = async (data: any) => {
+  const fetchProjects = useCallback(async () => {
+    if (!user) return
+    setLoadingProjects(true)
+    try {
+      const res = await fetch('/api/projects')
+      const data = (await res.json()) as ProjectsResponse | ErrorResponse
+
+      if (res.ok && 'projects' in data && Array.isArray(data.projects)) {
+        const projectsWithPRD = await Promise.all(
+          data.projects.map(async (project) => {
+            const prdRes = await fetch(`/api/projects/${project.id}/prds`)
+            const prdData = (await prdRes.json()) as PrdCountResponse | ErrorResponse
+            return {
+              ...project,
+              prdCount: prdRes.ok && 'count' in prdData ? prdData.count ?? 0 : 0,
+            }
+          }),
+        )
+        setProjects(projectsWithPRD)
+      } else {
+        const message = 'error' in data && data.error ? data.error : 'Failed to load projects'
+        setFeedback(message)
+      }
+    } catch (err) {
+      console.error(err)
+      setFeedback('Unable to load projects')
+    } finally {
+      setLoadingProjects(false)
+    }
+  }, [user])
+
+  const handleNewProjectSubmit = async (data: ProjectFormData) => {
     try {
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
-      const result = await res.json()
+      const result = (await res.json()) as { error?: string }
 
       if (!res.ok) {
         setFeedback(result.error || 'Failed to create project')
@@ -278,7 +327,6 @@ export default function DashboardPage() {
       }
 
       setFeedback('Project created successfully!')
-      console.log('Created Project:', result.project)
 
       // Refresh projects list
       fetchProjects()
@@ -288,40 +336,9 @@ export default function DashboardPage() {
     }
   }
 
-  const fetchProjects = async () => {
-    if (!user) return
-    setLoadingProjects(true)
-    try {
-      const res = await fetch('/api/projects')
-      const data = await res.json()
-
-      if (res.ok) {
-        // Map each project to include PRD count
-        const projectsWithPRD = await Promise.all(
-          data.projects.map(async (project: any) => {
-            const prdRes = await fetch(`/api/projects/${project.id}/prds`)
-            const prdData = await prdRes.json()
-            return {
-              ...project,
-              prdCount: prdRes.ok ? prdData.count || 0 : 0,
-            }
-          })
-        )
-        setProjects(projectsWithPRD)
-      } else {
-        setFeedback(data.error || 'Failed to load projects')
-      }
-    } catch (err) {
-      console.error(err)
-      setFeedback('Unable to load projects')
-    } finally {
-      setLoadingProjects(false)
-    }
-  }
-
   useEffect(() => {
     fetchProjects()
-  }, [user])
+  }, [fetchProjects])
 
   if (isLoading) return <PageLoader />
 

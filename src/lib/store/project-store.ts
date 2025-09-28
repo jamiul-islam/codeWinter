@@ -29,7 +29,7 @@ interface ProjectState {
   resetEdges: () => void
 
   // Project ID
-  setCurrentProjectId: (id: string) => void
+  setCurrentProjectId: (id: string | null) => void
 
   // Reset entire store
   reset: () => void

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSupabaseClient } from '@/lib/supabase/server'
 
-export async function GET(req: NextRequest, context: { params: { id: string } }) {
-  // Await the params object
-  const params = await context.params
-  const projectId = params.id
+export async function GET(
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id: projectId } = await context.params
 
   try {
     const supabase = await getServerSupabaseClient()
@@ -15,18 +16,19 @@ export async function GET(req: NextRequest, context: { params: { id: string } })
       return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
     }
 
-    // Count PRDs for this project
+    // Count PRDs linked to features in this project
     const { count, error } = await supabase
-      .from('prds')
-      .select('id', { count: 'exact', head: true }) // only count
-      .eq('project_id', projectId)
+      .from('feature_prds')
+      .select('id, features!inner(project_id)', { count: 'exact', head: true })
+      .eq('features.project_id', projectId)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     return NextResponse.json({ count: count || 0 })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch PRD count'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

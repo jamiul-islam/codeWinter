@@ -1,6 +1,6 @@
 'use client'
 
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, type FieldArrayPath, type FieldValues } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
@@ -25,7 +25,11 @@ const projectSchema = z.object({
     .max(10, 'No more than 10 features allowed'),
 })
 
-type ProjectFormData = z.infer<typeof projectSchema>
+export interface ProjectFormData extends FieldValues {
+  name: string
+  description: string
+  features: string[]
+}
 
 interface NewProjectDialogProps {
   isOpen: boolean
@@ -49,9 +53,11 @@ export default function NewProjectDialog({
     mode: 'onChange', // validate on change
   })
 
-  const { fields, append, remove } = useFieldArray({
+  const featuresFieldName: FieldArrayPath<ProjectFormData> = 'features'
+
+  const { fields, append, remove } = useFieldArray<ProjectFormData>({
     control,
-    name: 'features',
+    name: featuresFieldName,
   })
 
   const submitHandler = (data: ProjectFormData) => {

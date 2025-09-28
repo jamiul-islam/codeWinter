@@ -26,14 +26,15 @@ export default function AuthCallbackPage() {
           // No session found, redirect to home
           router.push('/')
         }
-      } catch (error: any) {
-        console.error('Unexpected error during auth callback:', error)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        console.error('Unexpected error during auth callback:', message)
         router.push('/?error=unexpected')
       }
     }
 
     handleAuthCallback()
-  }, [router, supabase.auth])
+  }, [router, supabase])
 
   return (
     <div className="flex min-h-screen items-center justify-center">
