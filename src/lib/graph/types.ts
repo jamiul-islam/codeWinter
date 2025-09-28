@@ -1,10 +1,14 @@
+import type { Json } from '@/lib/supabase/types'
+
 export type ProjectNodeType = 'appCard' | 'featureHub' | 'featureNode'
+
+export type JsonRecord = { [key: string]: Json | undefined }
 
 export type PersistedGraphNode = {
   id: string
   type: ProjectNodeType
   position: { x: number; y: number }
-  data: Record<string, unknown>
+  data?: JsonRecord
   draggable?: boolean
 }
 
@@ -14,7 +18,7 @@ export type PersistedGraphEdge = {
   target: string
   type?: string
   label?: string
-  data?: Record<string, unknown>
+  data?: JsonRecord
   animated?: boolean
 }
 

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSupabaseClient } from '@/lib/supabase/server'
+import type { Json } from '@/lib/supabase/types'
+import type { JsonRecord } from '@/lib/graph/types'
 
 type GraphUpdatePayload = {
   nodes: unknown
@@ -10,7 +12,7 @@ type SanitizedNode = {
   id: string
   type?: string
   position?: { x: number; y: number }
-  data?: unknown
+  data?: JsonRecord
   draggable?: boolean
 }
 
@@ -20,7 +22,7 @@ type SanitizedEdge = {
   target: string
   type?: string
   label?: string
-  data?: unknown
+  data?: JsonRecord
   animated?: boolean
 }
 
@@ -51,7 +53,7 @@ export async function PATCH(
 
     await supabase
       .from('projects')
-      .update({ graph: { nodes: sanitizedNodes, edges: sanitizedEdges } })
+      .update({ graph: { nodes: sanitizedNodes, edges: sanitizedEdges } as unknown as Json })
       .eq('id', projectId)
 
     const featureUpdates = sanitizedNodes
@@ -124,9 +126,9 @@ function sanitizePosition(position: unknown) {
   return { x, y }
 }
 
-function sanitizeData(data: unknown): Record<string, unknown> | undefined {
+function sanitizeData(data: unknown): JsonRecord | undefined {
   if (data == null || typeof data !== 'object') return undefined
-  const result: Record<string, unknown> = {}
+  const result: JsonRecord = {}
   Object.entries(data as Record<string, unknown>).forEach(([key, value]) => {
     if (typeof value === 'function') return
     if (value == null) {
@@ -136,7 +138,7 @@ function sanitizeData(data: unknown): Record<string, unknown> | undefined {
     if (Array.isArray(value)) {
       result[key] = value
         .map((item) => (typeof item === 'function' ? null : item))
-        .filter((item) => item !== undefined)
+        .filter((item) => item !== undefined) as Json[]
       return
     }
     if (typeof value === 'object') {

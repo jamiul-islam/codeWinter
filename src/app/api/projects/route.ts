@@ -4,11 +4,16 @@ import { generateAndPersistProjectGraph } from '@/lib/graph/generate'
 import { getServerSupabaseClient } from '@/lib/supabase/server'
 
 // Zod schema for project creation
+const featureInputSchema = z.object({
+  featureId: z.string().uuid().optional(),
+  title: z.string().min(3, 'Each feature must be at least 3 characters'),
+})
+
 const projectSchema = z.object({
   name: z.string().min(3, 'Project name must be at least 3 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
   features: z
-    .array(z.string().min(3, 'Each feature must be at least 3 characters'))
+    .array(featureInputSchema)
     .min(5, 'At least 5 features are required')
     .max(10, 'No more than 10 features allowed'),
 })
@@ -31,8 +36,8 @@ export async function POST(req: NextRequest) {
     const { data: project, error: projectError } = await supabase
       .from('projects')
       .insert({
-        name: validatedData.name,
-        description: validatedData.description,
+        name: validatedData.name.trim(),
+        description: validatedData.description.trim(),
         user_id: userId,
         graph: { nodes: [], edges: [] }, // placeholder
       })
@@ -49,7 +54,7 @@ export async function POST(req: NextRequest) {
     // Insert features
     const featuresData = validatedData.features.map((feature) => ({
       project_id: project.id,
-      title: feature,
+      title: feature.title.trim(),
     }))
     const { data: insertedFeatures, error: featuresError } = await supabase
       .from('features')

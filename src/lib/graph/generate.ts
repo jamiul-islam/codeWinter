@@ -9,8 +9,9 @@ import type {
   PersistedGraphEdge,
   PersistedGraphNode,
   PersistedGraphPayload,
+  JsonRecord,
 } from '@/lib/graph/types'
-import type { Database, Tables } from '@/lib/supabase/types'
+import type { Database, Tables, Json } from '@/lib/supabase/types'
 
 const GEMINI_GRAPH_MODEL = 'gemini-1.5-flash'
 
@@ -190,23 +191,22 @@ function normalizeGraph(
 
   let droppedEdges = 0
 
-  const edges: NormalizedEdge[] = raw.edges
-    .map((edge) => {
-      const source = resolveFeatureId(edge.source, featureMap, titleMap)
-      const target = resolveFeatureId(edge.target, featureMap, titleMap)
+  const edges = raw.edges.reduce<NormalizedEdge[]>((acc, edge) => {
+    const source = resolveFeatureId(edge.source, featureMap, titleMap)
+    const target = resolveFeatureId(edge.target, featureMap, titleMap)
 
-      if (!source || !target || source === target) {
-        droppedEdges += 1
-        return null
-      }
+    if (!source || !target || source === target) {
+      droppedEdges += 1
+      return acc
+    }
 
-      return {
-        source,
-        target,
-        note: edge.note,
-      }
+    acc.push({
+      source,
+      target,
+      note: edge.note,
     })
-    .filter((edge): edge is NormalizedEdge => Boolean(edge))
+    return acc
+  }, [])
 
   return {
     nodes,
@@ -279,19 +279,23 @@ function buildPersistedGraph(
     },
   }
 
-  const featureNodes: PersistedGraphNode[] = normalized.nodes.map((node, index) => ({
-    id: node.id,
-    type: 'featureNode',
-    position: featurePositions[index] ?? { x: 240, y: index * 160 },
-      data: {
-        kind: 'feature',
-        featureId: node.id,
-        title: node.title,
-        note: node.note,
+  const featureNodes: PersistedGraphNode[] = normalized.nodes.map((node, index) => {
+    const featureData: JsonRecord = {
+      kind: 'feature',
+      featureId: node.id,
+      title: node.title,
+      note: node.note ?? null,
       status: 'idle',
       order: index,
-    },
-  }))
+    }
+
+    return {
+      id: node.id,
+      type: 'featureNode',
+      position: featurePositions[index] ?? { x: 240, y: index * 160 },
+      data: featureData,
+    }
+  })
 
   const graphNodes = [appNode, hubNode, ...featureNodes]
 
@@ -388,9 +392,11 @@ export async function generateAndPersistProjectGraph({
     features,
   )
 
+  const graphJson = graph as unknown as Json
+
   const { error: projectUpdateError } = await supabase
     .from('projects')
-    .update({ graph })
+    .update({ graph: graphJson })
     .eq('id', project.id)
   if (projectUpdateError) {
     throw projectUpdateError

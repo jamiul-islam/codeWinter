@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { featureTitleSchema } from '@/lib/schemas/feature'
 import type { PersistedGraphPayload } from '@/lib/graph/types'
+import type { Json } from '@/lib/supabase/types'
 import { getServerSupabaseClient } from '@/lib/supabase/server'
 
 const renameSchema = z.object({ title: featureTitleSchema })
@@ -133,7 +134,9 @@ async function updateProjectGraphTitle(
 
   if (error || !project?.graph) return
 
-  const graph = project.graph as PersistedGraphPayload
+  if (!project.graph) return
+
+  const graph = structuredClone(project.graph) as PersistedGraphPayload
   if (!Array.isArray(graph.nodes)) return
 
   const updatedNodes = graph.nodes.map((node) => {
@@ -152,7 +155,7 @@ async function updateProjectGraphTitle(
 
   await supabase
     .from('projects')
-    .update({ graph: nextGraph })
+    .update({ graph: nextGraph as unknown as Json })
     .eq('id', projectId)
 }
 
@@ -169,7 +172,7 @@ async function pruneProjectGraphAfterDeletion(
 
   if (error || !project?.graph) return
 
-  const graph = project.graph as PersistedGraphPayload
+  const graph = structuredClone(project.graph) as PersistedGraphPayload
   const nodes = Array.isArray(graph.nodes) ? graph.nodes : []
   const edges = Array.isArray(graph.edges) ? graph.edges : []
 
@@ -185,12 +188,10 @@ async function pruneProjectGraphAfterDeletion(
 
   const adjustedNodes = filteredNodes.map((node) => {
     if ((node.data?.kind as string | undefined) !== 'feature-hub') return node
+    const existingCount = Number((node.data as Record<string, unknown> | undefined)?.featureCount ?? 0)
     const nextData = {
       ...(node.data ?? {}),
-      featureCount:
-        typeof count === 'number'
-          ? count
-          : Math.max(0, Number((node.data as Record<string, unknown>).featureCount ?? 0) - 1),
+      featureCount: typeof count === 'number' ? count : Math.max(0, existingCount - 1),
     }
     return { ...node, data: nextData }
   })
@@ -203,6 +204,6 @@ async function pruneProjectGraphAfterDeletion(
 
   await supabase
     .from('projects')
-    .update({ graph: nextGraph })
+    .update({ graph: nextGraph as unknown as Json })
     .eq('id', projectId)
 }
