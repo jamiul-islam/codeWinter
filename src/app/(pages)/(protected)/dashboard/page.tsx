@@ -452,12 +452,12 @@ export default function DashboardPage() {
       </section>
 
       {/* Projects List */}
-      <section className="mt-10">
-        <h2 className="mb-6 text-xl font-semibold text-white">Your Projects</h2>
+      <section className="mt-6">
+        <h2 className="mb-4 text-xl font-semibold text-white">Your Projects</h2>
         {loadingProjects ? (
           <PageLoader />
         ) : projects.length === 0 ? (
-          <p className="text-slate-300">No projects yet. Create one to get started!</p>
+          <p className="text-sm text-slate-300">No projects yet. Create one to get started!</p>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
