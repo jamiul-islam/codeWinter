@@ -1,84 +1,78 @@
 // 'use client'
 
 // import { useEffect, useState } from 'react'
-// import { useParams, useRouter } from 'next/navigation'
-
-// import { PageLoader } from '@/components/loaders'
+// import { useRouter } from 'next/navigation'
 // import { useProjectStore } from '@/lib/store/project-store'
+// import { PageLoader } from '@/components/loaders'
+// import { GraphCanvas } from '@/components/graph'
 
-// type Project = {
+// interface Project {
 //   id: string
 //   name: string
+//   description?: string
+//   graph: { nodes: any[]; edges: any[] }
+//   created_at: string
 //   updated_at: string
 // }
 
-// type Feature = {
-//   id: string
-//   title: string
-//   description: string
-// }
-
-// type GraphData = {
-//   nodes: any[]
-//   edges: any[]
-// }
-
-// export default function ProjectPage() {
-//   const { id } = useParams() // project ID from route
+// export default function ProjectPage({ params }: { params: { id: string } }) {
 //   const router = useRouter()
-//   const { setProject, setFeatures, setGraph } = useProjectStore()
 //   const [loading, setLoading] = useState(true)
 //   const [error, setError] = useState<string | null>(null)
 
-//   useEffect(() => {
-//     if (!id) return
+//   // Zustand methods
+//   const resetStore = useProjectStore((state) => state.reset)
+//   const upsertNode = useProjectStore((state) => state.upsertNode)
+//   const resetEdges = useProjectStore((state) => state.resetEdges)
+//   const addEdgeToStore = useProjectStore((state) => state.addEdge)
 
+//   useEffect(() => {
 //     const fetchProjectData = async () => {
 //       setLoading(true)
 //       try {
-//         // 1. Fetch project
-//         const projectRes = await fetch(`/api/projects/${id}`)
-//         if (!projectRes.ok) throw new Error('Failed to fetch project')
-//         const projectData: Project = await projectRes.json()
+//         const res = await fetch(`/api/projects/${params.id}`)
+//         const data = await res.json()
 
-//         // 2. Fetch features (PRDs)
-//         const featuresRes = await fetch(`/api/projects/${id}/prds`)
-//         if (!featuresRes.ok) throw new Error('Failed to fetch project features')
-//         const featuresData: { features: Feature[] } = await featuresRes.json()
+//         if (!res.ok) {
+//           setError(data.error || 'Failed to fetch project')
+//           setLoading(false)
+//           return
+//         }
 
-//         // 3. Fetch graph data
-//         const graphRes = await fetch(`/api/projects/${id}/graph`)
-//         if (!graphRes.ok) throw new Error('Failed to fetch graph')
-//         const graphData: GraphData = await graphRes.json()
+//         const project: Project = data.project
 
-//         // 4. Update Zustand store
-//         setProject(projectData)
-//         setFeatures(featuresData.features || [])
-//         setGraph(graphData || { nodes: [], edges: [] })
+//         // Reset Zustand store
+//         resetStore()
+//         resetEdges()
 
-//       } catch (err: any) {
-//         console.error(err)
-//         setError(err.message || 'Something went wrong')
-//       } finally {
+//         // Populate nodes
+//         project.graph?.nodes?.forEach((node) => upsertNode(node))
+
+//         // Populate edges
+//         project.graph?.edges?.forEach((edge) => addEdgeToStore(edge))
+
+//         setLoading(false)
+//       } catch (err) {
+//         setError('Failed to fetch project')
 //         setLoading(false)
 //       }
 //     }
 
 //     fetchProjectData()
-//   }, [id, setProject, setFeatures, setGraph])
+//   }, [params.id, resetStore, resetEdges, upsertNode, addEdgeToStore])
 
 //   if (loading) return <PageLoader />
-//   if (error) return <p className="text-red-400 text-center mt-10">{error}</p>
+//   if (error) return <div className="text-red-500">{error}</div>
 
 //   return (
-//     <main className="mx-auto min-h-screen max-w-6xl px-6 py-16">
-//       <h1 className="text-3xl font-semibold text-white mb-6">
-//         Project Dashboard
-//       </h1>
-//       <p className="text-slate-300">
-//         Project data loaded successfully. Now the graph canvas and features are ready.
-//       </p>
-//       {/* render GraphCanvas component here */}
+//     <main className="p-8">
+//       <h1 className="text-3xl font-semibold mb-4">{params.id}</h1>
+//       <p className="text-slate-300 mb-6">Project ID: {params.id}</p>
+
+//       {/* Graph Canvas */}
+//       <div className="w-full h-[600px] rounded-xl border border-white/10 bg-white/5 p-4">
+//         <GraphCanvas />
+//       </div>
 //     </main>
 //   )
 // }
@@ -90,6 +84,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useProjectStore } from '@/lib/store/project-store'
 import { PageLoader } from '@/components/loaders'
+import { GraphCanvas } from '@/components/graph'
 
 interface Project {
   id: string
@@ -104,8 +99,15 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const upsertNodes = useProjectStore((state) => state.upsertNode)
+
+  // Zustand methods
   const resetStore = useProjectStore((state) => state.reset)
+  const upsertNode = useProjectStore((state) => state.upsertNode)
+  const resetEdges = useProjectStore((state) => state.resetEdges)
+  const addEdgeToStore = useProjectStore((state) => state.addEdge)
+
+  // set current project ID in store
+  const setCurrentProjectId = useProjectStore((state) => state.setCurrentProjectId)
 
   useEffect(() => {
     const fetchProjectData = async () => {
@@ -122,11 +124,18 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
 
         const project: Project = data.project
 
+        // Save projectId to Zustand (for persistence in GraphCanvas)
+        setCurrentProjectId(project.id)
+
         // Reset Zustand store
         resetStore()
+        resetEdges()
 
-        // Populate nodes from project.graph
-        project.graph?.nodes?.forEach((node) => upsertNodes(node))
+        // Populate nodes
+        project.graph?.nodes?.forEach((node) => upsertNode(node))
+
+        // Populate edges
+        project.graph?.edges?.forEach((edge) => addEdgeToStore(edge))
 
         setLoading(false)
       } catch (err) {
@@ -136,16 +145,20 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
     }
 
     fetchProjectData()
-  }, [params.id, resetStore, upsertNodes])
+  }, [params.id, resetStore, resetEdges, upsertNode, addEdgeToStore, setCurrentProjectId])
 
   if (loading) return <PageLoader />
   if (error) return <div className="text-red-500">{error}</div>
 
   return (
     <main className="p-8">
-      <h1 className="text-3xl font-semibold mb-4">Project Details</h1>
-      <p className="text-slate-300">Project ID: {params.id}</p>
-      {/* Add Graph Canvas here */}
+      <h1 className="text-3xl font-semibold mb-4">Project Graph</h1>
+      <p className="text-slate-300 mb-6">Project ID: {params.id}</p>
+
+      {/* Graph Canvas */}
+      <div className="w-full h-[600px] rounded-xl border border-white/10 bg-white/5 p-4">
+        <GraphCanvas />
+      </div>
     </main>
   )
 }
