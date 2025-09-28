@@ -20,7 +20,7 @@ import {
   ModalTitle,
 } from '@/components/ui/modal'
 import { PageLoader } from '@/components/loaders'
-import { settingsSchema } from '@/lib/schemas/settings-schema'
+import { settingsSchema } from '@/lib/schemas/user-settings'
 
 type FormValues = z.infer<typeof settingsSchema>
 
@@ -94,7 +94,10 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Failed to save API key:', error)
-      setFeedback({ type: 'error', message: 'Unable to save API key right now.' })
+      setFeedback({
+        type: 'error',
+        message: 'Unable to save API key right now.',
+      })
     }
   }
 
@@ -120,7 +123,10 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Failed to delete API key:', error)
-      setFeedback({ type: 'error', message: 'Unable to delete API key right now.' })
+      setFeedback({
+        type: 'error',
+        message: 'Unable to delete API key right now.',
+      })
     } finally {
       setIsDeleting(false)
     }
@@ -145,21 +151,29 @@ export default function SettingsPage() {
   return (
     <main className="relative isolate mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-10 px-6 py-16">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
-      <div className="pointer-events-none absolute left-12 top-28 -z-10 hidden h-60 w-60 rounded-full bg-cyan-500/15 blur-3xl md:block" />
-      <div className="pointer-events-none absolute bottom-8 right-0 -z-10 h-52 w-52 rounded-full bg-purple-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute top-28 left-12 -z-10 hidden h-60 w-60 rounded-full bg-cyan-500/15 blur-3xl md:block" />
+      <div className="pointer-events-none absolute right-0 bottom-8 -z-10 h-52 w-52 rounded-full bg-purple-500/10 blur-3xl" />
 
-      <header className={`${cardClass} flex flex-col gap-6 p-8 sm:flex-row sm:items-end sm:justify-between`}>
+      <header
+        className={`${cardClass} flex flex-col gap-6 p-8 sm:flex-row sm:items-end sm:justify-between`}
+      >
         <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.35em] text-cyan-200/70">Account</p>
+          <p className="text-xs tracking-[0.35em] text-cyan-200/70 uppercase">
+            Account
+          </p>
           <div>
             <h1 className="text-3xl font-semibold text-white">Settings</h1>
             <p className="mt-2 max-w-xl text-sm text-slate-300">
-              Keep your workspace in sync, manage your Gemini credentials, and stay ready to generate new PRDs.
+              Keep your workspace in sync, manage your Gemini credentials, and
+              stay ready to generate new PRDs.
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Link className={buttonClasses({ variant: 'secondary', size: 'sm' })} href="/dashboard">
+          <Link
+            className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+            href="/dashboard"
+          >
             Back to dashboard
           </Link>
           <Button onClick={handleSignOut} variant="ghost" size="sm">
@@ -195,9 +209,12 @@ export default function SettingsPage() {
         <section className={`${cardClass} p-8`}>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-white">Gemini API key</h2>
+              <h2 className="text-xl font-semibold text-white">
+                Gemini API key
+              </h2>
               <p className="mt-2 text-sm text-slate-300">
-                Add your API key to enable graph-to-PRD generation from inside the dashboard.
+                Add your API key to enable graph-to-PRD generation from inside
+                the dashboard.
               </p>
             </div>
             {settings?.maskedKey && (
@@ -215,17 +232,26 @@ export default function SettingsPage() {
             {settings?.maskedKey ? (
               <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4 text-left">
                 <Label className="text-slate-200">Stored key</Label>
-                <Input value={settings.maskedKey} readOnly className="mt-2 font-mono" />
+                <Input
+                  value={settings.maskedKey}
+                  readOnly
+                  className="mt-2 font-mono"
+                />
               </div>
             ) : (
               <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
-                No key saved yet. Paste your Gemini API key below to enable generation.
+                No key saved yet. Paste your Gemini API key below to enable
+                generation.
               </div>
             )}
 
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label>{settings?.maskedKey ? 'Replace with new key' : 'Gemini API key'}</Label>
+                <Label>
+                  {settings?.maskedKey
+                    ? 'Replace with new key'
+                    : 'Gemini API key'}
+                </Label>
                 <Input
                   type="password"
                   placeholder="Paste your key"
@@ -238,7 +264,8 @@ export default function SettingsPage() {
                   </p>
                 )}
                 <p className="text-xs text-slate-400">
-                  We encrypt keys using your project&apos;s secret before storing them in Supabase.
+                  We encrypt keys using your project&apos;s secret before
+                  storing them in Supabase.
                 </p>
               </div>
 
@@ -264,7 +291,10 @@ export default function SettingsPage() {
         </section>
       </div>
 
-      <Modal isOpen={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)}>
+      <Modal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+      >
         <ModalHeader>
           <ModalTitle>Delete API key</ModalTitle>
           <ModalDescription>
@@ -272,7 +302,11 @@ export default function SettingsPage() {
           </ModalDescription>
         </ModalHeader>
         <ModalFooter>
-          <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>
+          <Button
+            variant="ghost"
+            onClick={() => setShowDeleteConfirm(false)}
+            disabled={isDeleting}
+          >
             Cancel
           </Button>
           <Button

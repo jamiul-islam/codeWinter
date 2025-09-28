@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSupabaseClient } from '@/lib/supabase/server'
-import { settingsSchema } from '@/lib/schemas/settings-schema'
+import { settingsSchema } from '@/lib/schemas/user-settings'
 import {
   encryptApiKey,
   decryptApiKey,
