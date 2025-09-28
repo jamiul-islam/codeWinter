@@ -2,6 +2,10 @@ import { z } from 'zod'
 
 import { timestampSchema, uuidSchema } from './base'
 
+export const settingsSchema = z.object({
+  gemini_api_key: z.string().min(1, 'API key is required'),
+})
+
 export const userSettingsInsertSchema = z.object({
   user_id: uuidSchema,
   gemini_api_key: z.string().min(1, 'Encrypted key is required'),
