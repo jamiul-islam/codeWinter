@@ -1,0 +1,40 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSupabaseClient } from '@/lib/supabase/server'
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = await getServerSupabaseClient()
+
+    // Ensure user is authenticated
+    const { data: userData } = await supabase.auth.getUser()
+    if (!userData.user?.id) {
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
+    }
+
+    const projectId = params.id
+
+    // Fetch the project
+    const { data: project, error } = await supabase
+      .from('projects')
+      .select('id, name, description, graph, created_at, updated_at')
+      .eq('id', projectId)
+      .single()
+
+    if (error || !project) {
+      return NextResponse.json(
+        { error: error?.message || 'Project not found' },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({ project })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
