@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { generateAndPersistProjectGraph } from '@/lib/graph/generate'
 import { getServerSupabaseClient } from '@/lib/supabase/server'
 
 // Zod schema for project creation
@@ -50,13 +51,26 @@ export async function POST(req: NextRequest) {
       project_id: project.id,
       title: feature,
     }))
-    const { error: featuresError } = await supabase.from('features').insert(featuresData)
+    const { data: insertedFeatures, error: featuresError } = await supabase
+      .from('features')
+      .insert(featuresData)
+      .select()
 
-    if (featuresError) {
-      return NextResponse.json({ error: featuresError.message }, { status: 500 })
+    if (featuresError || !insertedFeatures) {
+      return NextResponse.json({ error: featuresError?.message || 'Failed to create features' }, { status: 500 })
     }
 
-    return NextResponse.json({ message: 'Project created successfully', project })
+    const { graph } = await generateAndPersistProjectGraph({
+      supabase,
+      project,
+      features: insertedFeatures,
+      userId,
+    })
+
+    return NextResponse.json({
+      message: 'Project created successfully',
+      project: { ...project, graph },
+    })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 })

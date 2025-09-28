@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+import { generateAndPersistProjectGraph } from '@/lib/graph/generate'
 import { getServerSupabaseClient } from '@/lib/supabase/server'
 
-export async function GET(
-  _req: NextRequest,
+export async function POST(
+  req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id: projectId } = await context.params
@@ -10,43 +12,48 @@ export async function GET(
   try {
     const supabase = await getServerSupabaseClient()
 
-    // Ensure user is authenticated
     const { data: userData } = await supabase.auth.getUser()
-    if (!userData.user?.id) {
+    const userId = userData.user?.id
+
+    if (!userId) {
       return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
     }
 
-    const { data: project, error } = await supabase
+    const { data: project, error: projectError } = await supabase
       .from('projects')
       .select('*')
       .eq('id', projectId)
       .single()
 
-    if (error || !project) {
-      return NextResponse.json({ error: error?.message || 'Project not found' }, { status: 404 })
+    if (projectError || !project) {
+      return NextResponse.json({ error: projectError?.message || 'Project not found' }, { status: 404 })
     }
 
     const { data: features, error: featuresError } = await supabase
       .from('features')
-      .select('id, title, notes, position, feature_prds ( status )')
+      .select('*')
       .eq('project_id', projectId)
 
     if (featuresError) {
       return NextResponse.json({ error: featuresError.message }, { status: 500 })
     }
 
-    const { data: featureEdges, error: edgesError } = await supabase
-      .from('feature_edges')
-      .select('id, source_feature_id, target_feature_id, metadata')
-      .eq('project_id', projectId)
-
-    if (edgesError) {
-      return NextResponse.json({ error: edgesError.message }, { status: 500 })
+    if (!features?.length) {
+      return NextResponse.json({ error: 'No features found for this project' }, { status: 400 })
     }
 
-    return NextResponse.json({ project, features: features ?? [], edges: featureEdges ?? [] })
+    const { graph, normalized } = await generateAndPersistProjectGraph({
+      supabase,
+      project,
+      features,
+      userId,
+      signal: req.signal,
+    })
+
+    return NextResponse.json({ graph, summary: normalized })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch project'
+    const message =
+      error instanceof Error ? error.message : 'Failed to generate graph'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

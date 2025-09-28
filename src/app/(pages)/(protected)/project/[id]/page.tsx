@@ -23,10 +23,34 @@ type StoredNode = FeatureNodeState | (Partial<FeatureNodeState> & Node)
 type ProjectGraph = {
   nodes?: StoredNode[]
   edges?: Edge[]
+  meta?: {
+    version?: string
+    generatedAt?: string
+    model?: string | null
+    droppedEdges?: number
+    usedFallback?: boolean
+  }
+}
+
+type FeatureRecord = {
+  id: string
+  title: string
+  notes?: string | null
+  position?: { x: number; y: number } | null
+  feature_prds?: Array<{ status: FeatureNodeState['status'] }>
+}
+
+type FeatureEdgeRecord = {
+  id: string
+  source_feature_id: string
+  target_feature_id: string
+  metadata?: { note?: string } | null
 }
 
 type ProjectResponse = {
   project: Project
+  features: FeatureRecord[]
+  edges: FeatureEdgeRecord[]
 }
 
 type ErrorResponse = {
@@ -71,7 +95,6 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
 
   const resetStore = useProjectStore((state) => state.reset)
   const upsertNode = useProjectStore((state) => state.upsertNode)
-  const resetEdges = useProjectStore((state) => state.resetEdges)
   const addEdgeToStore = useProjectStore((state) => state.addEdge)
   const setCurrentProjectId = useProjectStore((state) => state.setCurrentProjectId)
 
@@ -91,22 +114,48 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       }
 
       const project = data.project
+      const features = Array.isArray(data.features) ? data.features : []
 
-      setCurrentProjectId(project.id)
       resetStore()
-      resetEdges()
+      setCurrentProjectId(project.id)
       setProject(project)
+
+      const statusByFeatureId = new Map<string, FeatureNodeState['status']>()
+      features.forEach((feature) => {
+        const status = feature.feature_prds?.[0]?.status ?? 'idle'
+        statusByFeatureId.set(feature.id, status)
+      })
 
       const graph = project.graph
       if (graph && Array.isArray(graph.nodes)) {
         graph.nodes.forEach((node) => {
-          const nodeWithStatus: FeatureNodeState = {
+          const clonedNode: FeatureNodeState = {
+            ...(node as FeatureNodeState),
+            data: typeof node?.data === 'object' && node?.data !== null ? { ...node.data } : {},
             status: 'idle',
-            ...node,
           }
-          upsertNode(nodeWithStatus)
+
+          if (
+            clonedNode.data &&
+            typeof clonedNode.data === 'object' &&
+            (clonedNode.data as Record<string, unknown>).kind === 'feature'
+          ) {
+            const featureId = clonedNode.id
+            clonedNode.status = statusByFeatureId.get(featureId) ?? 'idle'
+          }
+
+          if (
+            clonedNode.data &&
+            typeof clonedNode.data === 'object' &&
+            (clonedNode.data as Record<string, unknown>).kind === 'feature-hub'
+          ) {
+            ;(clonedNode.data as Record<string, unknown>).featureCount = features.length
+          }
+
+          upsertNode(clonedNode)
         })
       }
+
       if (graph && Array.isArray(graph.edges)) {
         graph.edges.forEach((edge) => addEdgeToStore(edge))
       }
@@ -116,17 +165,16 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       setError('Failed to fetch project')
       setLoading(false)
     }
-  }, [id, resetStore, resetEdges, upsertNode, addEdgeToStore, setCurrentProjectId])
+  }, [id, resetStore, upsertNode, addEdgeToStore, setCurrentProjectId])
 
   useEffect(() => {
     fetchProjectData()
     return () => {
       resetStore()
-      resetEdges()
       setCurrentProjectId(null)
       setProject(null)
     }
-  }, [fetchProjectData, resetStore, resetEdges, setCurrentProjectId])
+  }, [fetchProjectData, resetStore, setCurrentProjectId])
 
   if (loading) return <PageLoader />
 
