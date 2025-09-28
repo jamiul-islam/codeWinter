@@ -1,6 +1,6 @@
 'use client'
 
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, type FieldArrayPath, type FieldValues } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
@@ -25,7 +25,11 @@ const projectSchema = z.object({
     .max(10, 'No more than 10 features allowed'),
 })
 
-type ProjectFormData = z.infer<typeof projectSchema>
+export interface ProjectFormData extends FieldValues {
+  name: string
+  description: string
+  features: string[]
+}
 
 interface NewProjectDialogProps {
   isOpen: boolean
@@ -49,9 +53,11 @@ export default function NewProjectDialog({
     mode: 'onChange', // validate on change
   })
 
-  const { fields, append, remove } = useFieldArray({
+  const featuresFieldName: FieldArrayPath<ProjectFormData> = 'features'
+
+  const { fields, append, remove } = useFieldArray<ProjectFormData>({
     control,
-    name: 'features',
+    name: featuresFieldName,
   })
 
   const submitHandler = (data: ProjectFormData) => {
@@ -60,7 +66,7 @@ export default function NewProjectDialog({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
+    <Modal isOpen={isOpen} onClose={onClose} className="w-full max-w-xl">
       <ModalHeader>
         <ModalTitle>New Project</ModalTitle>
         <ModalDescription>
@@ -70,25 +76,24 @@ export default function NewProjectDialog({
 
       <form onSubmit={handleSubmit(submitHandler)} className="space-y-4">
         {/* Name */}
-        <div>
+        <div className="space-y-2">
           <Label htmlFor="name">Project Name</Label>
           <Input id="name" {...register('name')} />
           {errors.name && (
-            <p className="text-sm text-red-400 mt-1">{errors.name.message}</p>
+            <p className="text-sm text-red-400">{errors.name.message}</p>
           )}
         </div>
 
         {/* Description */}
-        <div>
+        <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
           <textarea
             id="description"
             {...register('description')}
-            className="w-full rounded-md border border-white/10 bg-slate-900/50 p-2 text-white"
-            rows={3}
+            className="h-28 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-cyan-300/80 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
           />
           {errors.description && (
-            <p className="text-sm text-red-400 mt-1">
+            <p className="text-sm text-red-400">
               {errors.description.message}
             </p>
           )}
@@ -97,23 +102,25 @@ export default function NewProjectDialog({
         {/* Features */}
         <div className="space-y-3">
           <Label>Features (5–10)</Label>
-          {fields.map((field, index) => (
-            <div key={field.id} className="flex gap-2 items-start">
-              <Input
-                {...register(`features.${index}`)}
-                placeholder={`Feature ${index + 1}`}
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => remove(index)}
-                disabled={fields.length <= 5} // enforce min count visually
-              >
-                Remove
-              </Button>
-            </div>
-          ))}
-          <div className="flex justify-between items-center mt-2">
+          <div className="space-y-2">
+            {fields.map((field, index) => (
+              <div key={field.id} className="flex gap-2">
+                <Input
+                  {...register(`features.${index}`)}
+                  placeholder={`Feature ${index + 1}`}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => remove(index)}
+                  disabled={fields.length <= 5} // enforce min count visually
+                >
+                  Remove
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between">
             <Button
               type="button"
               variant="secondary"

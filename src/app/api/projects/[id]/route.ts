@@ -1,11 +1,11 @@
-
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSupabaseClient } from '@/lib/supabase/server'
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  // const { id: projectId } = params 
-  const { id: projectId } = await params; // getting params as a promise to avoid potential issues
+export async function GET(
+  _req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id: projectId } = await context.params
 
   try {
     const supabase = await getServerSupabaseClient()
@@ -28,7 +28,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 
     return NextResponse.json({ project }) // wrap project in an object
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch project'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

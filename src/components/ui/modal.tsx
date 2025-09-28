@@ -40,7 +40,7 @@ export function Modal({ isOpen, onClose, children, className }: ModalProps) {
       <div
         ref={modalRef}
         className={cn(
-          'relative z-10 w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/90 p-6 shadow-xl shadow-black/40',
+          'relative z-10 w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-white/10 bg-slate-900/90 p-6 shadow-xl shadow-black/40',
           className,
         )}
       >

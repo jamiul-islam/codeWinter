@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSupabaseClient } from '@/lib/supabase/server'
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const projectId = params.id
+type GraphUpdatePayload = {
+  nodes: unknown
+  edges: unknown
+}
+
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> },
+) {
+  const { id: projectId } = await context.params
 
   try {
     const supabase = await getServerSupabaseClient()
@@ -13,7 +21,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
     }
 
-    const body = await req.json()
+    const body: GraphUpdatePayload = await req.json()
     const { nodes, edges } = body
 
     if (!Array.isArray(nodes) || !Array.isArray(edges)) {
@@ -33,7 +41,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     return NextResponse.json({ success: true, project: data })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to update project graph'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

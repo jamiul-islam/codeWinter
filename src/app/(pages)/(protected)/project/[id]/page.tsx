@@ -1,21 +1,38 @@
 'use client'
 
 import { useEffect, useState, useCallback, use } from 'react'
-import { useProjectStore } from '@/lib/store/project-store'
+import type { Edge, Node } from 'reactflow'
+
+import { useProjectStore, type FeatureNodeState } from '@/lib/store/project-store'
 import { PageLoader } from '@/components/loaders'
 import { GraphCanvas } from '@/components/graph'
 
 interface Project {
   id: string
   name: string
-  description?: string
-  graph: { nodes: any[]; edges: any[] }
+  description?: string | null
+  graph: ProjectGraph | null
   created_at: string
   updated_at: string
 }
 
-export default function ProjectPage({ params: rawParams }: { params: { id: string } }) {
-  const params = use(rawParams)  // rawParams params with React.use() to satisfy Next.js 15+ warning
+type StoredNode = FeatureNodeState | (Partial<FeatureNodeState> & Node)
+
+type ProjectGraph = {
+  nodes?: StoredNode[]
+  edges?: Edge[]
+}
+
+type ProjectResponse = {
+  project: Project
+}
+
+type ErrorResponse = {
+  error?: string
+}
+
+export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -31,30 +48,42 @@ export default function ProjectPage({ params: rawParams }: { params: { id: strin
     setError(null)
 
     try {
-      const res = await fetch(`/api/projects/${params.id}`)
-      const data = await res.json()
+      const res = await fetch(`/api/projects/${id}`)
+      const data = (await res.json()) as ProjectResponse | ErrorResponse
 
-      if (!res.ok) {
-        setError(data.error || 'Failed to fetch project')
+      if (!res.ok || !('project' in data)) {
+        const message = 'error' in data && data.error ? data.error : 'Failed to fetch project'
+        setError(message)
         setLoading(false)
         return
       }
 
-      const project: Project = data.project
+      const project = data.project
 
       setCurrentProjectId(project.id)
       resetStore()
       resetEdges()
 
-      project.graph?.nodes?.forEach((node) => upsertNode(node))
-      project.graph?.edges?.forEach((edge) => addEdgeToStore(edge))
+      const graph = project.graph
+      if (graph && Array.isArray(graph.nodes)) {
+        graph.nodes.forEach((node) => {
+          const nodeWithStatus: FeatureNodeState = {
+            status: 'idle',
+            ...node,
+          }
+          upsertNode(nodeWithStatus)
+        })
+      }
+      if (graph && Array.isArray(graph.edges)) {
+        graph.edges.forEach((edge) => addEdgeToStore(edge))
+      }
 
       setLoading(false)
     } catch {
       setError('Failed to fetch project')
       setLoading(false)
     }
-  }, [params.id, resetStore, resetEdges, upsertNode, addEdgeToStore, setCurrentProjectId])
+  }, [id, resetStore, resetEdges, upsertNode, addEdgeToStore, setCurrentProjectId])
 
   useEffect(() => {
     fetchProjectData()
@@ -84,7 +113,7 @@ export default function ProjectPage({ params: rawParams }: { params: { id: strin
   return (
     <main className="p-8">
       <h1 className="text-3xl font-semibold mb-4">Project Graph</h1>
-      <p className="text-slate-300 mb-6">Project ID: {params.id}</p>
+      <p className="text-slate-300 mb-6">Project ID: {id}</p>
 
       <div className="w-full h-[600px] rounded-xl border border-white/10 bg-white/5 p-4">
         <GraphCanvas />

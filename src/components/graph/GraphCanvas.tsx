@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useCallback } from 'react'
+import React, { useEffect, useCallback, useMemo } from 'react'
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -36,21 +36,28 @@ export const GraphCanvas: React.FC = () => {
   }, [edges])
 
   // debounced persist function to avoid spamming API
-  const persistGraph = useCallback(
-    debounce(async (nodes: Node[], edges: Edge[]) => {
-      if (!currentProjectId) return
-      try {
-        await fetch(`/api/projects/${currentProjectId}/graph`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ nodes, edges }),
-        })
-      } catch (err) {
-        console.error('Failed to persist graph:', err)
-      }
-    }, 500),
+  const persistGraph = useMemo(
+    () =>
+      debounce(async (nodesToPersist: Node[], edgesToPersist: Edge[]) => {
+        if (!currentProjectId) return
+        try {
+          await fetch(`/api/projects/${currentProjectId}/graph`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nodes: nodesToPersist, edges: edgesToPersist }),
+          })
+        } catch (err) {
+          console.error('Failed to persist graph:', err)
+        }
+      }, 500),
     [currentProjectId]
   )
+
+  useEffect(() => {
+    return () => {
+      persistGraph.cancel()
+    }
+  }, [persistGraph])
 
   // Handle node position changes
   const onNodesChange = useCallback(
