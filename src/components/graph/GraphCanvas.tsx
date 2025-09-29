@@ -20,6 +20,7 @@ import 'reactflow/dist/style.css'
 import debounce from 'lodash.debounce'
 
 import { AppCardNode, FeatureHubNode, FeatureNode } from '@/components/graph/nodes'
+import { NodeSidePanel } from '@/components/graph/NodeSidePanel'
 import {
   Modal,
   ModalDescription,
@@ -52,6 +53,13 @@ function GraphCanvasInner() {
   const upsertNode = useProjectStore((state) => state.upsertNode)
   const deleteNode = useProjectStore((state) => state.deleteNode)
   const currentProjectId = useProjectStore((state) => state.currentProjectId)
+  
+  // PRD state
+  const selectedFeatureId = useProjectStore((state) => state.selectedFeatureId)
+  const sidePanelOpen = useProjectStore((state) => state.sidePanelOpen)
+  const prdStatuses = useProjectStore((state) => state.prdStatuses)
+  const setSelectedFeature = useProjectStore((state) => state.setSelectedFeature)
+  const setSidePanelOpen = useProjectStore((state) => state.setSidePanelOpen)
 
   const [renameTarget, setRenameTarget] = useState<RenameState | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -139,16 +147,31 @@ function GraphCanvasInner() {
     [nodes, edges, upsertNode, persistGraph]
   )
 
+  const handlePrdClick = useCallback((featureId: string, title: string) => {
+    setSelectedFeature(featureId)
+    setSidePanelOpen(true)
+  }, [setSelectedFeature, setSidePanelOpen])
+
+  const handleCloseSidePanel = useCallback(() => {
+    setSidePanelOpen(false)
+    setSelectedFeature(null)
+  }, [setSidePanelOpen, setSelectedFeature])
+
   const interactiveNodes = useMemo(
     () =>
       nodes.map((node) => {
         const payload = (node.data ?? {}) as Record<string, unknown>
         if (payload.kind === 'feature') {
+          const featureId = payload.featureId as string
+          const prdStatus = prdStatuses[featureId]
+          
           return {
             ...node,
             draggable: true,
             data: {
               ...payload,
+              prdStatus: prdStatus?.status || 'idle',
+              prdError: prdStatus?.error,
               onRename: (id: string, title: string) => {
                 setRenameTarget({ id, title })
                 setRenameValue(title)
@@ -158,6 +181,7 @@ function GraphCanvasInner() {
                 setDeleteTarget({ id, title })
                 setDeleteError(null)
               },
+              onPrdClick: handlePrdClick,
             },
           }
         }
@@ -167,7 +191,7 @@ function GraphCanvasInner() {
           draggable: false,
         }
       }),
-    [nodes]
+    [nodes, prdStatuses, handlePrdClick]
   )
 
   const closeRename = () => {
@@ -269,51 +293,74 @@ function GraphCanvasInner() {
     }
   }
 
+  // Get selected feature data
+  const selectedFeature = selectedFeatureId 
+    ? nodes.find(node => {
+        const payload = (node.data ?? {}) as Record<string, unknown>
+        return payload.featureId === selectedFeatureId
+      })
+    : null
+  
+  const selectedFeatureTitle = selectedFeature 
+    ? ((selectedFeature.data as any)?.title || 'Feature')
+    : undefined
+
   return (
-    <div className="relative h-[520px] w-full overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/20">
-      <ReactFlow
-        nodes={interactiveNodes as Node[]}
-        edges={edges}
-        onNodesChange={handleNodesChange}
-        fitView
-        nodeTypes={nodeTypes}
-        proOptions={{ hideAttribution: true }}
-        panOnScroll
-        selectionOnDrag
-        style={{ width: '100%', height: '100%' }}
-      >
-        <MiniMap
-          nodeStrokeColor={(node) =>
-            node.type === 'featureNode' ? '#6EE7F9' : '#A78BFA'
-          }
-          nodeColor={(node) =>
-            node.type === 'featureNode' ? '#0f172a' : '#1e293b'
-          }
+    <>
+      <div className="relative h-[520px] w-full overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/20">
+        <ReactFlow
+          nodes={interactiveNodes as Node[]}
+          edges={edges}
+          onNodesChange={handleNodesChange}
+          fitView
+          nodeTypes={nodeTypes}
+          proOptions={{ hideAttribution: true }}
+          panOnScroll
+          selectionOnDrag
+          style={{ width: '100%', height: '100%' }}
+        >
+          <MiniMap
+            nodeStrokeColor={(node) =>
+              node.type === 'featureNode' ? '#6EE7F9' : '#A78BFA'
+            }
+            nodeColor={(node) =>
+              node.type === 'featureNode' ? '#0f172a' : '#1e293b'
+            }
+          />
+          <Controls className="rounded-full border border-white/10 bg-slate-900/80 text-slate-100" />
+          <Background gap={24} color="rgba(148, 163, 184, 0.12)" />
+        </ReactFlow>
+
+        <RenameModal
+          isOpen={Boolean(renameTarget)}
+          currentTitle={renameTarget?.title ?? ''}
+          value={renameValue}
+          error={renameError}
+          isSaving={isRenaming}
+          onChange={setRenameValue}
+          onClose={closeRename}
+          onSubmit={submitRename}
         />
-        <Controls className="rounded-full border border-white/10 bg-slate-900/80 text-slate-100" />
-        <Background gap={24} color="rgba(148, 163, 184, 0.12)" />
-      </ReactFlow>
 
-      <RenameModal
-        isOpen={Boolean(renameTarget)}
-        currentTitle={renameTarget?.title ?? ''}
-        value={renameValue}
-        error={renameError}
-        isSaving={isRenaming}
-        onChange={setRenameValue}
-        onClose={closeRename}
-        onSubmit={submitRename}
-      />
+        <DeleteModal
+          isOpen={Boolean(deleteTarget)}
+          featureTitle={deleteTarget?.title ?? ''}
+          isDeleting={isDeleting}
+          error={deleteError}
+          onClose={closeDelete}
+          onConfirm={confirmDelete}
+        />
+      </div>
 
-      <DeleteModal
-        isOpen={Boolean(deleteTarget)}
-        featureTitle={deleteTarget?.title ?? ''}
-        isDeleting={isDeleting}
-        error={deleteError}
-        onClose={closeDelete}
-        onConfirm={confirmDelete}
+      {/* PRD Side Panel */}
+      <NodeSidePanel
+        featureId={selectedFeatureId}
+        featureTitle={selectedFeatureTitle}
+        projectId={currentProjectId || undefined}
+        isOpen={sidePanelOpen}
+        onClose={handleCloseSidePanel}
       />
-    </div>
+    </>
   )
 }
 
