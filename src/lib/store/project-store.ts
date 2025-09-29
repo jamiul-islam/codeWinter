@@ -5,9 +5,17 @@ import { devtools, persist } from 'zustand/middleware'
 import type { Node, Edge } from 'reactflow'
 
 export type NodeStatus = 'idle' | 'generating' | 'ready' | 'error'
+export type PrdStatus = 'idle' | 'generating' | 'ready' | 'error'
 
 export interface FeatureNodeState extends Node {
   status: NodeStatus
+}
+
+export interface PrdState {
+  status: PrdStatus
+  prdId?: string
+  error?: string
+  lastGenerated?: string
 }
 
 interface ProjectState {
@@ -16,6 +24,11 @@ interface ProjectState {
   nodes: FeatureNodeState[]
   edges: Edge[]
   selectedNodeId: string | null
+
+  // PRD state management
+  selectedFeatureId: string | null
+  sidePanelOpen: boolean
+  prdStatuses: Record<string, PrdState>
 
   // Node methods
   upsertNode: (node: FeatureNodeState) => void
@@ -27,6 +40,14 @@ interface ProjectState {
   addEdge: (edge: Edge) => void
   deleteEdge: (id: string) => void
   resetEdges: () => void
+
+  // PRD methods
+  setSelectedFeature: (id: string | null) => void
+  toggleSidePanel: () => void
+  setSidePanelOpen: (open: boolean) => void
+  updatePrdStatus: (featureId: string, status: PrdState) => void
+  generatePrd: (featureId: string, projectId: string) => Promise<void>
+  regeneratePrd: (prdId: string, featureId: string, projectId: string) => Promise<void>
 
   // Project ID
   setCurrentProjectId: (id: string | null) => void
@@ -43,6 +64,11 @@ export const useProjectStore = create<ProjectState>()(
         nodes: [],
         edges: [],
         selectedNodeId: null,
+
+        // PRD state
+        selectedFeatureId: null,
+        sidePanelOpen: false,
+        prdStatuses: {},
 
         // Node methods
         upsertNode: (node) => {
@@ -85,6 +111,96 @@ export const useProjectStore = create<ProjectState>()(
         deleteEdge: (id) => set((state) => ({ edges: state.edges.filter((e) => e.id !== id) }), false, `delete-edge:${id}`),
         resetEdges: () => set({ edges: [] }, false, 'reset-edges'),
 
+        // PRD methods
+        setSelectedFeature: (id) => {
+          set({ selectedFeatureId: id }, false, `select-feature:${id ?? 'none'}`)
+        },
+
+        toggleSidePanel: () => {
+          set((state) => ({ sidePanelOpen: !state.sidePanelOpen }), false, 'toggle-side-panel')
+        },
+
+        setSidePanelOpen: (open) => {
+          set({ sidePanelOpen: open }, false, `set-side-panel:${open}`)
+        },
+
+        updatePrdStatus: (featureId, status) => {
+          set((state) => ({
+            prdStatuses: {
+              ...state.prdStatuses,
+              [featureId]: status,
+            },
+          }), false, `update-prd-status:${featureId}`)
+        },
+
+        generatePrd: async (featureId, projectId) => {
+          const { updatePrdStatus } = get()
+          
+          try {
+            // Set generating status
+            updatePrdStatus(featureId, { status: 'generating' })
+
+            const response = await fetch('/api/prd/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ featureId, projectId }),
+            })
+
+            const result = await response.json()
+
+            if (response.ok) {
+              updatePrdStatus(featureId, {
+                status: result.status,
+                prdId: result.prdId,
+              })
+            } else {
+              updatePrdStatus(featureId, {
+                status: 'error',
+                error: result.error || 'Generation failed',
+              })
+            }
+          } catch (error) {
+            updatePrdStatus(featureId, {
+              status: 'error',
+              error: 'Network error',
+            })
+          }
+        },
+
+        regeneratePrd: async (prdId, featureId, projectId) => {
+          const { updatePrdStatus } = get()
+          
+          try {
+            // Set generating status
+            updatePrdStatus(featureId, { status: 'generating', prdId })
+
+            const response = await fetch(`/api/prd/${prdId}/regenerate`, {
+              method: 'POST',
+            })
+
+            const result = await response.json()
+
+            if (response.ok) {
+              updatePrdStatus(featureId, {
+                status: result.status,
+                prdId: result.prdId,
+              })
+            } else {
+              updatePrdStatus(featureId, {
+                status: 'error',
+                error: result.error || 'Regeneration failed',
+                prdId,
+              })
+            }
+          } catch (error) {
+            updatePrdStatus(featureId, {
+              status: 'error',
+              error: 'Network error',
+              prdId,
+            })
+          }
+        },
+
         // Project ID
         setCurrentProjectId: (id) => set({ currentProjectId: id }),
 
@@ -93,7 +209,10 @@ export const useProjectStore = create<ProjectState>()(
           currentProjectId: null,
           nodes: [],
           edges: [],
-          selectedNodeId: null
+          selectedNodeId: null,
+          selectedFeatureId: null,
+          sidePanelOpen: false,
+          prdStatuses: {},
         }, false, 'reset-store'),
       }),
       { name: 'cw-project-store', version: 3 }
