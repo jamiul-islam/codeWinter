@@ -18,7 +18,10 @@ import { Button } from '@/components/ui/button'
 
 // Schema for client-side validation (PRD rules)
 const featureFieldSchema = z.object({
-  featureId: z.string().uuid().optional(),
+  featureId: z.preprocess(
+    (value) => (typeof value === 'string' && value.trim().length === 0 ? undefined : value),
+    z.string().uuid().optional()
+  ),
   title: z.string().min(3, 'Each feature must be at least 3 characters'),
 })
 
@@ -50,7 +53,7 @@ interface ProjectDialogProps {
 
 const MIN_FEATURE_COUNT = 5
 
-const emptyFeature = () => ({ featureId: undefined, title: '' })
+const emptyFeature = () => ({ title: '' })
 
 function normalizeFeatures(
   features?: ProjectFormData['features'],
@@ -58,7 +61,7 @@ function normalizeFeatures(
   const sanitized = (features ?? [])
     .filter((feature) => feature)
     .map((feature) => ({
-      featureId: feature.featureId,
+      ...(feature.featureId ? { featureId: feature.featureId } : {}),
       title: feature.title ?? '',
     }))
 
@@ -129,7 +132,7 @@ export default function ProjectDialog({
       name: data.name.trim(),
       description: data.description.trim(),
       features: data.features.map((feature) => ({
-        featureId: feature.featureId,
+        ...(feature.featureId ? { featureId: feature.featureId } : {}),
         title: feature.title.trim(),
       })),
     }
@@ -184,25 +187,37 @@ export default function ProjectDialog({
           <div className="space-y-2">
             {fields.map((field, index) => {
               const featureId = (field as typeof field & { featureId?: string }).featureId ?? ''
+              const featureError =
+                (errors.features as Array<{ title?: { message?: string } } | undefined> | undefined)?.[
+                  index
+                ]?.title?.message
+
               return (
-                <div key={field.id} className="flex gap-2">
-                  <input
-                    type="hidden"
-                    {...register(`features.${index}.featureId`)}
-                    defaultValue={featureId}
-                  />
-                  <Input
-                    {...register(`features.${index}.title`)}
-                    placeholder={`Feature ${index + 1}`}
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => remove(index)}
-                    disabled={fields.length <= MIN_FEATURE_COUNT} // enforce min count visually
-                  >
-                    Remove
-                  </Button>
+                <div key={field.id} className="flex flex-col gap-1">
+                  <div className="flex gap-2">
+                    <input
+                      type="hidden"
+                      {...register(`features.${index}.featureId`)}
+                      defaultValue={featureId}
+                    />
+                    <Input
+                      {...register(`features.${index}.title`)}
+                      placeholder={`Feature ${index + 1}`}
+                      autoComplete="off"
+                      aria-invalid={Boolean(featureError)}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => remove(index)}
+                      disabled={fields.length <= MIN_FEATURE_COUNT} // enforce min count visually
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                  {featureError && (
+                    <p className="text-xs text-rose-300">{featureError}</p>
+                  )}
                 </div>
               )
             })}
@@ -216,7 +231,7 @@ export default function ProjectDialog({
             >
               Add Feature
             </Button>
-            {errors.features && (
+            {typeof errors.features?.message === 'string' && (
               <p className="text-sm text-red-400">{errors.features.message}</p>
             )}
           </div>
