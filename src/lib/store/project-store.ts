@@ -47,7 +47,6 @@ interface ProjectState {
   setSidePanelOpen: (open: boolean) => void
   updatePrdStatus: (featureId: string, status: PrdState) => void
   generatePrd: (featureId: string, projectId: string) => Promise<void>
-  regeneratePrd: (prdId: string, featureId: string, projectId: string) => Promise<void>
 
   // Project ID
   setCurrentProjectId: (id: string | null) => void
@@ -163,40 +162,6 @@ export const useProjectStore = create<ProjectState>()(
             updatePrdStatus(featureId, {
               status: 'error',
               error: 'Network error',
-            })
-          }
-        },
-
-        regeneratePrd: async (prdId, featureId, projectId) => {
-          const { updatePrdStatus } = get()
-          
-          try {
-            // Set generating status
-            updatePrdStatus(featureId, { status: 'generating', prdId })
-
-            const response = await fetch(`/api/prd/${prdId}/regenerate`, {
-              method: 'POST',
-            })
-
-            const result = await response.json()
-
-            if (response.ok) {
-              updatePrdStatus(featureId, {
-                status: result.status,
-                prdId: result.prdId,
-              })
-            } else {
-              updatePrdStatus(featureId, {
-                status: 'error',
-                error: result.error || 'Regeneration failed',
-                prdId,
-              })
-            }
-          } catch (error) {
-            updatePrdStatus(featureId, {
-              status: 'error',
-              error: 'Network error',
-              prdId,
             })
           }
         },
