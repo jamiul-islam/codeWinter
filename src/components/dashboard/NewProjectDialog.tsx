@@ -1,9 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useForm, useFieldArray, type FieldArrayPath, type FieldValues } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { useForm, useFieldArray } from 'react-hook-form'
 
 import {
   Modal,
@@ -16,31 +14,41 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 
-// Schema for client-side validation (PRD rules)
-const featureFieldSchema = z.object({
-  featureId: z.preprocess(
-    (value) => (typeof value === 'string' && value.trim().length === 0 ? undefined : value),
-    z.string().uuid().optional()
-  ),
-  title: z.string().min(3, 'Each feature must be at least 3 characters'),
-})
-
-const projectSchema = z.object({
-  name: z.string().min(3, 'Project name must be at least 3 characters'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
-  features: z
-    .array(featureFieldSchema)
-    .min(5, 'At least 5 features are required')
-    .max(10, 'No more than 10 features allowed'),
-})
-
-export interface ProjectFormData extends FieldValues {
+// Define the type for form data
+export interface ProjectFormData {
   name: string
   description: string
   features: Array<{
     featureId?: string
     title: string
   }>
+}
+
+// Manual validation function
+const validateProjectForm = (data: ProjectFormData): Record<string, string> => {
+  const errors: Record<string, string> = {}
+  
+  if (!data.name || data.name.trim().length < 3) {
+    errors.name = 'Project name must be at least 3 characters'
+  }
+  
+  if (!data.description || data.description.trim().length < 10) {
+    errors.description = 'Description must be at least 10 characters'
+  }
+  
+  if (!data.features || data.features.length < 5) {
+    errors.features = 'At least 5 features are required'
+  } else if (data.features.length > 10) {
+    errors.features = 'No more than 10 features allowed'
+  }
+  
+  data.features.forEach((feature, index) => {
+    if (!feature.title || feature.title.trim().length < 3) {
+      errors[`features.${index}.title`] = 'Each feature must be at least 3 characters'
+    }
+  })
+  
+  return errors
 }
 
 interface ProjectDialogProps {
@@ -59,7 +67,7 @@ function normalizeFeatures(
   features?: ProjectFormData['features'],
 ): ProjectFormData['features'] {
   const sanitized = (features ?? [])
-    .filter((feature) => feature)
+    .filter((feature): feature is NonNullable<typeof feature> => Boolean(feature))
     .map((feature) => ({
       ...(feature.featureId ? { featureId: feature.featureId } : {}),
       title: feature.title ?? '',
@@ -91,23 +99,21 @@ export default function ProjectDialog({
     [],
   )
 
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+
   const {
     register,
     handleSubmit,
     control,
-    formState: { errors },
     reset,
   } = useForm<ProjectFormData>({
-    resolver: zodResolver(projectSchema),
     defaultValues,
-    mode: 'onChange', // validate on change
+    mode: 'onChange',
   })
 
-  const featuresFieldName: FieldArrayPath<ProjectFormData> = 'features'
-
-  const { fields, append, remove, replace } = useFieldArray<ProjectFormData>({
+  const { fields, append, remove, replace } = useFieldArray({
     control,
-    name: featuresFieldName,
+    name: 'features',
   })
 
   useEffect(() => {
@@ -123,10 +129,12 @@ export default function ProjectDialog({
     reset(normalized)
     replace(normalized.features)
     setFormError(null)
+    setValidationErrors({})
   }, [isOpen, initialData, defaultValues, reset, replace])
 
   const submitHandler = async (data: ProjectFormData) => {
     setFormError(null)
+    setValidationErrors({})
 
     const payload: ProjectFormData = {
       name: data.name.trim(),
@@ -135,6 +143,13 @@ export default function ProjectDialog({
         ...(feature.featureId ? { featureId: feature.featureId } : {}),
         title: feature.title.trim(),
       })),
+    }
+
+    // Validate the form
+    const errors = validateProjectForm(payload)
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors)
+      return
     }
 
     try {
@@ -161,8 +176,8 @@ export default function ProjectDialog({
         <div className="space-y-2">
           <Label htmlFor="name">Project Name</Label>
           <Input id="name" {...register('name')} />
-          {errors.name && (
-            <p className="text-sm text-red-400">{errors.name.message}</p>
+          {validationErrors.name && (
+            <p className="text-sm text-red-400">{validationErrors.name}</p>
           )}
         </div>
 
@@ -174,9 +189,9 @@ export default function ProjectDialog({
             {...register('description')}
             className="h-28 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-cyan-300/80 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
           />
-          {errors.description && (
+          {validationErrors.description && (
             <p className="text-sm text-red-400">
-              {errors.description.message}
+              {validationErrors.description}
             </p>
           )}
         </div>
@@ -186,22 +201,19 @@ export default function ProjectDialog({
           <Label>Features (5–10)</Label>
           <div className="space-y-2">
             {fields.map((field, index) => {
-              const featureId = (field as typeof field & { featureId?: string }).featureId ?? ''
-              const featureError =
-                (errors.features as Array<{ title?: { message?: string } } | undefined> | undefined)?.[
-                  index
-                ]?.title?.message
+              const featureId = (field as { featureId?: string }).featureId ?? ''
+              const featureError = validationErrors[`features.${index}.title`]
 
               return (
                 <div key={field.id} className="flex flex-col gap-1">
                   <div className="flex gap-2">
                     <input
                       type="hidden"
-                      {...register(`features.${index}.featureId`)}
+                      {...register(`features.${index}.featureId` as const)}
                       defaultValue={featureId}
                     />
                     <Input
-                      {...register(`features.${index}.title`)}
+                      {...register(`features.${index}.title` as const)}
                       placeholder={`Feature ${index + 1}`}
                       autoComplete="off"
                       aria-invalid={Boolean(featureError)}
@@ -231,8 +243,8 @@ export default function ProjectDialog({
             >
               Add Feature
             </Button>
-            {typeof errors.features?.message === 'string' && (
-              <p className="text-sm text-red-400">{errors.features.message}</p>
+            {validationErrors.features && (
+              <p className="text-sm text-red-400">{validationErrors.features}</p>
             )}
           </div>
         </div>
