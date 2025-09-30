@@ -10,16 +10,9 @@ function cleanMarkdownContent(content: string): string {
 
   const trimmed = content.trim()
 
-  // Debug: Log the first 100 characters to understand the pattern
-  console.log('\n\n\nCleaning markdown content\n\n\n')
-  console.log('First 40 chars:', JSON.stringify(trimmed.substring(0, 40)))
-  console.log('Last 40 chars:', JSON.stringify(trimmed.substring(-40)))
-  console.log('\n\n\nCleaning markdown done\n\n\n')
-
   // Pattern 1: Handle content that starts with ``` and ends with ```
   // This covers: ```\n...content...\n``` and ```markdown\n...content...\n```
   if (trimmed.startsWith('```') && trimmed.endsWith('```')) {
-    console.log('Matched Pattern 1: Complete code block')
     // Find the first newline after the opening ```
     const firstNewline = trimmed.indexOf('\n')
     if (firstNewline !== -1) {
@@ -28,10 +21,7 @@ function cleanMarkdownContent(content: string): string {
       const lastBackticks = withoutOpening.lastIndexOf('\n```')
       if (lastBackticks !== -1) {
         const cleaned = withoutOpening.substring(0, lastBackticks).trim()
-        console.log(
-          'Pattern 1 result, first 100 chars:',
-          JSON.stringify(cleaned.substring(0, 100))
-        )
+
         return cleaned
       }
     }
@@ -40,7 +30,6 @@ function cleanMarkdownContent(content: string): string {
   // Pattern 2: Handle content that starts with ``` followed by newlines
   // This covers cases where AI generates: ```\n\n# Title\n...content...
   if (trimmed.startsWith('```\n')) {
-    console.log('Matched Pattern 2: Opening with newlines')
     // Find where the actual content starts (after ``` and any newlines)
     let startIndex = 3 // Skip ```
     while (startIndex < trimmed.length && trimmed[startIndex] === '\n') {
@@ -50,28 +39,25 @@ function cleanMarkdownContent(content: string): string {
 
     // Check if there's another nested code fence (```markdown or similar)
     if (cleaned.startsWith('```')) {
-      console.log('Found nested code fence, cleaning recursively')
       cleaned = cleanMarkdownContent(cleaned) // Recursive call to handle nested fences
     }
 
-    console.log('Pattern 2 result, first 100 chars:', JSON.stringify(cleaned.substring(0, 100)))
     return cleaned
   }
 
   // Pattern 3: Handle content that starts with ``` followed by content on same line
   // This covers: ```# Title\n...content... or ```markdown\n...content...
   if (trimmed.startsWith('```') && !trimmed.includes('\n```')) {
-    console.log('Matched Pattern 3: Opening without closing')
     let cleaned = trimmed.substring(3) // Remove ```
-    
+
     // If it starts with a language specifier (like "markdown\n"), remove it
     const languageMatch = cleaned.match(/^(markdown|md|text)?\s*\n/)
     if (languageMatch) {
       cleaned = cleaned.substring(languageMatch[0].length)
     }
-    
+
     cleaned = cleaned.trim()
-    console.log('Pattern 3 result, first 100 chars:', JSON.stringify(cleaned.substring(0, 100)))
+
     return cleaned
   }
 
@@ -81,16 +67,10 @@ function cleanMarkdownContent(content: string): string {
     /^\s*```(?:markdown|md)?\s*\n([\s\S]*?)(?:\n```\s*)?$/
   const match = trimmed.match(codeBlockPattern)
   if (match) {
-    console.log('Matched Pattern 4: Regex pattern')
     const cleaned = match[1].trim()
-    console.log(
-      'Pattern 4 result, first 100 chars:',
-      JSON.stringify(cleaned.substring(0, 100))
-    )
     return cleaned
   }
 
-  console.log('No pattern matched, returning original content')
   return content
 }
 
@@ -223,7 +203,10 @@ function parsePrdResponse(
     // Use a more robust approach to find the complete JSON object
     const jsonStart = response.indexOf('{')
     if (jsonStart === -1) {
-      console.error('No JSON found in response. Response preview:', response.substring(0, 500))
+      console.error(
+        'No JSON found in response. Response preview:',
+        response.substring(0, 500)
+      )
       throw new Error('No JSON found in response')
     }
 
@@ -240,20 +223,24 @@ function parsePrdResponse(
     }
 
     if (braceCount !== 0) {
-      console.error('Incomplete JSON found in response. Response preview:', response.substring(0, 500))
+      console.error(
+        'Incomplete JSON found in response. Response preview:',
+        response.substring(0, 500)
+      )
       throw new Error('Incomplete JSON found in response')
     }
 
     const jsonStr = response.substring(jsonStart, jsonEnd + 1)
-    console.log('Extracted JSON string:', jsonStr)
-    
+
     let prdJson: any
     try {
       prdJson = JSON.parse(jsonStr)
     } catch (parseError) {
       console.error('JSON parse error:', parseError)
       console.error('Problematic JSON string:', jsonStr)
-      throw new Error(`Invalid JSON format: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`)
+      throw new Error(
+        `Invalid JSON format: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`
+      )
     }
 
     // Validate required fields
