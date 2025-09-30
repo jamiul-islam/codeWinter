@@ -13,6 +13,7 @@ interface PrdViewerProps {
   featureTitle: string
   className?: string
   hideTitle?: boolean
+  editButton?: React.ReactNode
 }
 
 export function PrdViewer({
@@ -21,6 +22,7 @@ export function PrdViewer({
   featureTitle,
   className,
   hideTitle = false,
+  editButton,
 }: PrdViewerProps) {
   const [copied, setCopied] = useState(false)
   const [downloading, setDownloading] = useState(false)
@@ -70,25 +72,24 @@ export function PrdViewer({
       {/* Header with actions - only show if not hidden */}
       {!hideTitle && (
         <div className="flex items-center justify-between border-b border-slate-700 p-4">
-          <h3 className="text-lg font-medium text-white">
-            PRD: {featureTitle}
-          </h3>
+          <div className="flex items-center gap-4">{editButton}</div>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={handleCopy}
               disabled={copied}
+              className="gap-2"
             >
               {copied ? (
                 <>
-                  <Check className="h-4 w-4" />
-                  <span className="ml-2">Copied</span>
+                  <Check className="size-4" />
+                  Copied
                 </>
               ) : (
                 <>
-                  <Copy className="h-4 w-4" />
-                  <span className="ml-2">Copy</span>
+                  <Copy className="size-4" />
+                  Copy
                 </>
               )}
             </Button>
@@ -97,15 +98,16 @@ export function PrdViewer({
               size="sm"
               onClick={handleDownload}
               disabled={downloading}
+              className="gap-2"
             >
               {downloading ? (
                 <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  <div className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                   Downloading...
                 </>
               ) : (
                 <>
-                  <Download className="h-4 w-4" />
+                  <Download className="size-4" />
                   Download
                 </>
               )}
@@ -122,16 +124,16 @@ export function PrdViewer({
             size="sm"
             onClick={handleCopy}
             disabled={copied}
+            className="gap-2"
           >
             {copied ? (
               <>
-                <Check className="h-4 w-4" />
-                <span className="ml-2">Copied</span>
+                <Check className="size-4" />
+                Copied
               </>
             ) : (
               <>
-                <Copy className="h-4 w-4" />
-                <span className="ml-2">Copy</span>
+                <Copy className="size-4" /> Copy
               </>
             )}
           </Button>
@@ -140,16 +142,17 @@ export function PrdViewer({
             size="sm"
             onClick={handleDownload}
             disabled={downloading}
+            className="gap-2"
           >
             {downloading ? (
               <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <div className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                 <span className="ml-2">Downloading...</span>
               </>
             ) : (
               <>
-                <Download className="h-4 w-4" />
-                <span className="ml-2">Download</span>
+                <Download className="size-4" />
+                Download
               </>
             )}
           </Button>
