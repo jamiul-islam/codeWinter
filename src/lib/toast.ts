@@ -63,6 +63,20 @@ export const prdToast = {
     })
   },
 
+  prdUpdated: (featureTitle: string) => {
+    toast.success(`PRD updated for ${featureTitle}`, {
+      id: `prd-update-${featureTitle}`,
+      description: 'Your changes have been saved',
+    })
+  },
+
+  prdUpdateError: (featureTitle: string) => {
+    toast.error(`Failed to update PRD for ${featureTitle}`, {
+      id: `prd-update-${featureTitle}`,
+      description: 'Please try again',
+    })
+  },
+
   apiKeyMissing: () => {
     toast.error('Gemini API key required', {
       description: 'Please add your API key in settings to generate PRDs',
