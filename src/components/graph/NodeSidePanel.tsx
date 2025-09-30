@@ -9,6 +9,8 @@ import {
   RefreshCw,
   Copy,
   Check,
+  Edit3,
+  Save,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PrdViewer } from '@/components/prd/PrdViewer'
@@ -51,6 +53,9 @@ export function NodeSidePanel({
   const [copied, setCopied] = useState(false)
   const [wasGenerating, setWasGenerating] = useState(false)
   const [isRegenerating, setIsRegenerating] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedMarkdown, setEditedMarkdown] = useState('')
+  const [saving, setSaving] = useState(false)
 
   // Fetch PRD data when feature changes
   useEffect(() => {
@@ -77,9 +82,15 @@ export function NodeSidePanel({
     } else if (wasGenerating && prdData?.status === 'error') {
       // Show error toast when generation fails
       if (isRegenerating) {
-        prdToast.regenerateError(featureTitle, prdData.error || 'Generation failed')
+        prdToast.regenerateError(
+          featureTitle,
+          prdData.error || 'Generation failed'
+        )
       } else {
-        prdToast.generateError(featureTitle, prdData.error || 'Generation failed')
+        prdToast.generateError(
+          featureTitle,
+          prdData.error || 'Generation failed'
+        )
       }
       setWasGenerating(false)
       setIsRegenerating(false)
@@ -190,6 +201,37 @@ export function NodeSidePanel({
     }
   }
 
+  const handleSavePrd = async () => {
+    if (!prdData?.id || !featureId) return
+
+    try {
+      setSaving(true)
+
+      const response = await fetch(`/api/prd/${prdData.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          markdown: editedMarkdown,
+          featureId,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save PRD')
+      }
+
+      // Refresh PRD data
+      await fetchPrdData()
+      setIsEditing(false)
+      prdToast.prdUpdated(featureTitle)
+    } catch (error) {
+      console.error('Failed to save PRD:', error)
+      prdToast.prdUpdateError(featureTitle)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const tabs = [
     { id: 'summary', label: 'Summary', icon: FileText },
     { id: 'prd', label: 'PRD', icon: FileText },
@@ -241,7 +283,7 @@ export function NodeSidePanel({
                   : 'text-slate-400 hover:bg-slate-800/30 hover:text-slate-300'
               )}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="size-4" />
               {tab.label}
             </button>
           )
@@ -276,13 +318,79 @@ export function NodeSidePanel({
             {activeTab === 'prd' && (
               <div className="flex flex-1 flex-col overflow-hidden">
                 {prdData?.prdMd && prdData.id ? (
-                  <PrdViewer
-                    markdown={prdData.prdMd}
-                    prdId={prdData.id}
-                    featureTitle={featureTitle}
-                    hideTitle={true}
-                    className="flex-1"
-                  />
+                  !isEditing ? (
+                    // View Mode
+                    <PrdViewer
+                      markdown={prdData.prdMd}
+                      prdId={prdData.id}
+                      featureTitle={featureTitle}
+                      hideTitle={false}
+                      className="flex-1"
+                      editButton={
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setEditedMarkdown(prdData.prdMd || '')
+                            setIsEditing(true)
+                          }}
+                          className="gap-2"
+                        >
+                          <Edit3 className="size-4" />
+                          Edit
+                        </Button>
+                      }
+                    />
+                  ) : (
+                    // Edit Mode
+                    <>
+                      <div className="flex items-center justify-between border-b border-slate-700 p-4">
+                        <h3 className="text-sm font-medium text-slate-200">
+                          Edit PRD
+                        </h3>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setIsEditing(false)
+                              setEditedMarkdown('')
+                            }}
+                            disabled={saving}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={handleSavePrd}
+                            disabled={saving}
+                            className="gap-2"
+                          >
+                            {saving ? (
+                              <>
+                                <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="size-4" />
+                                Save
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-hidden p-4">
+                        <textarea
+                          value={editedMarkdown}
+                          onChange={(e) => setEditedMarkdown(e.target.value)}
+                          className="h-full w-full resize-none rounded-lg border border-slate-700 bg-slate-900/50 p-4 font-mono text-sm text-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+                          placeholder="Edit PRD markdown..."
+                        />
+                      </div>
+                    </>
+                  )
                 ) : prdData?.status === 'generating' ? (
                   <div className="flex flex-1 flex-col items-center justify-center text-center">
                     <div className="mb-4 h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
@@ -327,12 +435,12 @@ export function NodeSidePanel({
                       >
                         {copied ? (
                           <>
-                            <Check className="h-4 w-4" />
+                            <Check className="size-4" />
                             <span className="ml-2">Copied</span>
                           </>
                         ) : (
                           <>
-                            <Copy className="h-4 w-4" />
+                            <Copy className="size-4" />
                             <span className="ml-2">Copy JSON</span>
                           </>
                         )}
@@ -370,7 +478,7 @@ export function NodeSidePanel({
                     >
                       {generating ? (
                         <>
-                          <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          <div className="mr-2 size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
                           Generating...
                         </>
                       ) : (
@@ -385,7 +493,7 @@ export function NodeSidePanel({
                         variant="secondary"
                         className="w-full"
                       >
-                        <RefreshCw className="mr-2 h-4 w-4" />
+                        <RefreshCw className="mr-2 size-4" />
                         Regenerate PRD
                       </Button>
                     </div>
