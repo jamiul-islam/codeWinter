@@ -6,14 +6,12 @@ import {
   Node,
   Edge,
   Background,
-  Controls,
-  MiniMap,
   useNodesState,
   useEdgesState,
   Connection,
   addEdge,
-} from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
+} from 'reactflow'
+import 'reactflow/dist/style.css'
 
 const initialNodes: Node[] = [
   {
@@ -23,14 +21,14 @@ const initialNodes: Node[] = [
       label: (
         <div style={{ width: '240px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(110, 231, 249, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(110, 231, 249, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 , color: '#6EE7F9'}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
               </svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontWeight: '600', fontSize: '14px', letterSpacing: '-0.01em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>User Auth</span>
+              <span style={{ fontWeight: '600', fontSize: '14px', letterSpacing: '-0.01em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#FFFFFF' }}>User Auth</span>
             </div>
           </div>
           <div style={{ fontSize: '11px', color: 'rgba(147, 163, 179, 0.8)', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -68,7 +66,7 @@ const initialNodes: Node[] = [
       label: (
         <div style={{ width: '240px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(167, 139, 250, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(167, 139, 250, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#A78BFA' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="3" y1="9" x2="21" y2="9"></line>
@@ -76,7 +74,7 @@ const initialNodes: Node[] = [
               </svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontWeight: '600', fontSize: '14px', letterSpacing: '-0.01em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Dashboard</span>
+              <span style={{ fontWeight: '600', fontSize: '14px', letterSpacing: '-0.01em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#FFFFFF' }}>Dashboard</span>
             </div>
           </div>
           <div style={{ fontSize: '11px', color: 'rgba(147, 163, 179, 0.8)', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -114,7 +112,7 @@ const initialNodes: Node[] = [
       label: (
         <div style={{ width: '240px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(52, 211, 153, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(52, 211, 153, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#34D399' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                 <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
@@ -122,7 +120,7 @@ const initialNodes: Node[] = [
               </svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontWeight: '600', fontSize: '14px', letterSpacing: '-0.01em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Project Graph</span>
+              <span style={{ fontWeight: '600', fontSize: '14px', letterSpacing: '-0.01em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#FFFFFF' }}>Project Graph</span>
             </div>
           </div>
           <div style={{ fontSize: '11px', color: 'rgba(147, 163, 179, 0.8)', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -160,13 +158,13 @@ const initialNodes: Node[] = [
       label: (
         <div style={{ width: '240px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(110, 231, 249, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(110, 231, 249, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#6EE7F9' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
               </svg>
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontWeight: '600', fontSize: '14px', letterSpacing: '-0.01em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>PRD Generator</span>
+              <span style={{ fontWeight: '600', fontSize: '14px', letterSpacing: '-0.01em', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#FFFFFF' }}>PRD Generator</span>
             </div>
           </div>
           <div style={{ fontSize: '11px', color: 'rgba(147, 163, 179, 0.8)', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '8px' }}>

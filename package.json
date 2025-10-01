@@ -16,7 +16,6 @@
     "@hookform/resolvers": "^5.2.2",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.57.4",
-    "@xyflow/react": "^12.8.6",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.22",
     "lodash": "^4.17.21",

@@ -117,8 +117,7 @@ export function ProductShowcase() {
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-danger">✗</span>
-                    <span>Endless Slack threads asking "what's the spec?"</span>
-                  </div>
+                    <span>Endless Slack threads asking &quot;what&apos;s the spec?&quot;</span>                  </div>
                   <div className="flex items-start gap-2">
                     <span className="text-danger">✗</span>
                     <span>AI agents confused by inconsistent context</span>
