@@ -1,11 +1,6 @@
 'use client'
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import ReactFlow, {
   Background,
   Controls,
@@ -19,7 +14,11 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import debounce from 'lodash.debounce'
 
-import { AppCardNode, FeatureHubNode, FeatureNode } from '@/components/graph/nodes'
+import {
+  AppCardNode,
+  FeatureHubNode,
+  FeatureNode,
+} from '@/components/graph/nodes'
 import { NodeSidePanel } from '@/components/graph/NodeSidePanel'
 import {
   Modal,
@@ -30,7 +29,10 @@ import {
 } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useProjectStore, type FeatureNodeState } from '@/lib/store/project-store'
+import {
+  useProjectStore,
+  type FeatureNodeState,
+} from '@/lib/store/project-store'
 
 type RenameState = { id: string; title: string }
 type DeleteState = { id: string; title: string }
@@ -53,12 +55,14 @@ function GraphCanvasInner() {
   const upsertNode = useProjectStore((state) => state.upsertNode)
   const deleteNode = useProjectStore((state) => state.deleteNode)
   const currentProjectId = useProjectStore((state) => state.currentProjectId)
-  
+
   // PRD state
   const selectedFeatureId = useProjectStore((state) => state.selectedFeatureId)
   const sidePanelOpen = useProjectStore((state) => state.sidePanelOpen)
   const prdStatuses = useProjectStore((state) => state.prdStatuses)
-  const setSelectedFeature = useProjectStore((state) => state.setSelectedFeature)
+  const setSelectedFeature = useProjectStore(
+    (state) => state.setSelectedFeature
+  )
   const setSidePanelOpen = useProjectStore((state) => state.setSidePanelOpen)
 
   const [renameTarget, setRenameTarget] = useState<RenameState | null>(null)
@@ -103,7 +107,10 @@ function GraphCanvasInner() {
           await fetch(`/api/projects/${currentProjectId}/graph`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nodes: nodesToPersist, edges: edgesToPersist }),
+            body: JSON.stringify({
+              nodes: nodesToPersist,
+              edges: edgesToPersist,
+            }),
           })
         } catch (error) {
           console.error('Failed to persist graph', error)
@@ -134,7 +141,10 @@ function GraphCanvasInner() {
         if (change.type === 'position') {
           const node = updatedNodes.find((item) => item.id === change.id)
           if (!node) return
-          const nextNode = { ...node, position: change.position ?? node.position }
+          const nextNode = {
+            ...node,
+            position: change.position ?? node.position,
+          }
           upsertNode(nextNode)
           updatedNodes = updatedNodes.map((item) =>
             item.id === node.id ? nextNode : item
@@ -147,10 +157,13 @@ function GraphCanvasInner() {
     [nodes, edges, upsertNode, persistGraph]
   )
 
-  const handlePrdClick = useCallback((featureId: string, title: string) => {
-    setSelectedFeature(featureId)
-    setSidePanelOpen(true)
-  }, [setSelectedFeature, setSidePanelOpen])
+  const handlePrdClick = useCallback(
+    (featureId: string) => {
+      setSelectedFeature(featureId)
+      setSidePanelOpen(true)
+    },
+    [setSelectedFeature, setSidePanelOpen]
+  )
 
   const handleCloseSidePanel = useCallback(() => {
     setSidePanelOpen(false)
@@ -164,7 +177,7 @@ function GraphCanvasInner() {
         if (payload.kind === 'feature') {
           const featureId = payload.featureId as string
           const prdStatus = prdStatuses[featureId]
-          
+
           return {
             ...node,
             draggable: true,
@@ -251,7 +264,9 @@ function GraphCanvasInner() {
       closeRename()
     } catch (error) {
       console.error(error)
-      setRenameError(error instanceof Error ? error.message : 'Unable to rename feature')
+      setRenameError(
+        error instanceof Error ? error.message : 'Unable to rename feature'
+      )
       upsertNode(fallbackNode)
     } finally {
       setIsRenaming(false)
@@ -287,22 +302,24 @@ function GraphCanvasInner() {
       closeDelete()
     } catch (error) {
       console.error(error)
-      setDeleteError(error instanceof Error ? error.message : 'Unable to delete feature')
+      setDeleteError(
+        error instanceof Error ? error.message : 'Unable to delete feature'
+      )
     } finally {
       setIsDeleting(false)
     }
   }
 
   // Get selected feature data
-  const selectedFeature = selectedFeatureId 
-    ? nodes.find(node => {
+  const selectedFeature = selectedFeatureId
+    ? nodes.find((node) => {
         const payload = (node.data ?? {}) as Record<string, unknown>
         return payload.featureId === selectedFeatureId
       })
     : null
-  
-  const selectedFeatureTitle = selectedFeature 
-    ? ((selectedFeature.data as any)?.title || 'Feature')
+
+  const selectedFeatureTitle = selectedFeature
+    ? (selectedFeature.data as { title?: string })?.title || 'Feature'
     : undefined
 
   return (
@@ -392,7 +409,8 @@ function RenameModal({
       <ModalHeader>
         <ModalTitle>Rename feature</ModalTitle>
         <ModalDescription>
-          Give <span className="font-semibold text-white">{currentTitle}</span> a new label.
+          Give <span className="font-semibold text-white">{currentTitle}</span>{' '}
+          a new label.
         </ModalDescription>
       </ModalHeader>
 
@@ -404,18 +422,13 @@ function RenameModal({
         className="mt-2"
       />
 
-      {error && (
-        <p className="mt-3 text-sm text-rose-300">{error}</p>
-      )}
+      {error && <p className="mt-3 text-sm text-rose-300">{error}</p>}
 
       <ModalFooter>
         <Button variant="ghost" onClick={onClose} disabled={isSaving}>
           Cancel
         </Button>
-        <Button
-          onClick={onSubmit}
-          disabled={isSaving}
-        >
+        <Button onClick={onSubmit} disabled={isSaving}>
           {isSaving ? 'Saving...' : 'Save changes'}
         </Button>
       </ModalFooter>
@@ -447,17 +460,18 @@ function DeleteModal({
       <ModalHeader>
         <ModalTitle>Delete feature</ModalTitle>
         <ModalDescription>
-          This removes <span className="font-semibold text-white">{featureTitle}</span> and any generated PRDs.
+          This removes{' '}
+          <span className="font-semibold text-white">{featureTitle}</span> and
+          any generated PRDs.
         </ModalDescription>
       </ModalHeader>
 
       <p className="text-sm text-slate-300">
-        This action cannot be undone. The node, its edges, and stored PRDs will be deleted.
+        This action cannot be undone. The node, its edges, and stored PRDs will
+        be deleted.
       </p>
 
-      {error && (
-        <p className="mt-3 text-sm text-rose-300">{error}</p>
-      )}
+      {error && <p className="mt-3 text-sm text-rose-300">{error}</p>}
 
       <ModalFooter>
         <Button variant="ghost" onClick={onClose} disabled={isDeleting}>

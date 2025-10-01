@@ -41,7 +41,7 @@ export async function GET(
     }
 
     // Verify user owns the project
-    const feature = prd.features as any
+    const feature = prd.features as { id: string; title: string; projects: { id: string; name: string; user_id: string } }
     const project = feature.projects
     if (project.user_id !== userId) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })

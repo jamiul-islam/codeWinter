@@ -232,9 +232,9 @@ function parsePrdResponse(
 
     const jsonStr = response.substring(jsonStart, jsonEnd + 1)
 
-    let prdJson: any
+    let prdJson: Record<string, unknown>
     try {
-      prdJson = JSON.parse(jsonStr)
+      prdJson = JSON.parse(jsonStr) as Record<string, unknown>
     } catch (parseError) {
       console.error('JSON parse error:', parseError)
       console.error('Problematic JSON string:', jsonStr)
@@ -269,19 +269,19 @@ function parsePrdResponse(
 
     // If no markdown found after JSON, generate it from JSON
     if (!prdMarkdown || prdMarkdown.length < 100) {
-      prdMarkdown = generateMarkdownFromJson(prdJson, context)
+      prdMarkdown = generateMarkdownFromJson(prdJson as Parameters<typeof generateMarkdownFromJson>[0], context)
     }
 
     // Estimate token count (rough approximation)
     const tokenCount = Math.ceil(response.length / 4)
 
     return {
-      summary: prdJson.summary,
+      summary: (prdJson.summary as string) || '',
       prdMarkdown,
       prdJson: {
         title: context.targetFeature.title,
         ...prdJson,
-      },
+      } as PrdGenerationResult['prdJson'],
       modelUsed: 'gemini-2.0-flash',
       tokenCount,
     }

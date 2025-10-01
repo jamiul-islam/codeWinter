@@ -71,32 +71,44 @@ export const useProjectStore = create<ProjectState>()(
 
         // Node methods
         upsertNode: (node) => {
-          set((state) => {
-            const index = state.nodes.findIndex((n) => n.id === node.id)
-            if (index === -1) return { nodes: [...state.nodes, node] }
-            const nextNodes = [...state.nodes]
-            nextNodes[index] = { ...nextNodes[index], ...node }
-            return { nodes: nextNodes }
-          }, false, `upsert-node:${node.id}`)
+          set(
+            (state) => {
+              const index = state.nodes.findIndex((n) => n.id === node.id)
+              if (index === -1) return { nodes: [...state.nodes, node] }
+              const nextNodes = [...state.nodes]
+              nextNodes[index] = { ...nextNodes[index], ...node }
+              return { nodes: nextNodes }
+            },
+            false,
+            `upsert-node:${node.id}`
+          )
         },
 
         setNodeStatus: (id, status) => {
-          set((state) => ({
-            nodes: state.nodes.map((n) =>
-              n.id === id ? { ...n, status } : n
-            ),
-          }), false, `set-status:${id}`)
+          set(
+            (state) => ({
+              nodes: state.nodes.map((n) =>
+                n.id === id ? { ...n, status } : n
+              ),
+            }),
+            false,
+            `set-status:${id}`
+          )
         },
 
         deleteNode: (id) => {
-          set((state) => ({
-            nodes: state.nodes.filter((n) => n.id !== id),
-            edges: state.edges.filter(
-              (e) => e.source !== id && e.target !== id
-            ),
-            selectedNodeId:
-              state.selectedNodeId === id ? null : state.selectedNodeId,
-          }), false, `delete-node:${id}`)
+          set(
+            (state) => ({
+              nodes: state.nodes.filter((n) => n.id !== id),
+              edges: state.edges.filter(
+                (e) => e.source !== id && e.target !== id
+              ),
+              selectedNodeId:
+                state.selectedNodeId === id ? null : state.selectedNodeId,
+            }),
+            false,
+            `delete-node:${id}`
+          )
         },
 
         selectNode: (id) => {
@@ -106,17 +118,35 @@ export const useProjectStore = create<ProjectState>()(
         },
 
         // Edge methods
-        addEdge: (edge) => set((state) => ({ edges: [...state.edges, edge] }), false, `add-edge:${edge.id}`),
-        deleteEdge: (id) => set((state) => ({ edges: state.edges.filter((e) => e.id !== id) }), false, `delete-edge:${id}`),
+        addEdge: (edge) =>
+          set(
+            (state) => ({ edges: [...state.edges, edge] }),
+            false,
+            `add-edge:${edge.id}`
+          ),
+        deleteEdge: (id) =>
+          set(
+            (state) => ({ edges: state.edges.filter((e) => e.id !== id) }),
+            false,
+            `delete-edge:${id}`
+          ),
         resetEdges: () => set({ edges: [] }, false, 'reset-edges'),
 
         // PRD methods
         setSelectedFeature: (id) => {
-          set({ selectedFeatureId: id }, false, `select-feature:${id ?? 'none'}`)
+          set(
+            { selectedFeatureId: id },
+            false,
+            `select-feature:${id ?? 'none'}`
+          )
         },
 
         toggleSidePanel: () => {
-          set((state) => ({ sidePanelOpen: !state.sidePanelOpen }), false, 'toggle-side-panel')
+          set(
+            (state) => ({ sidePanelOpen: !state.sidePanelOpen }),
+            false,
+            'toggle-side-panel'
+          )
         },
 
         setSidePanelOpen: (open) => {
@@ -124,17 +154,21 @@ export const useProjectStore = create<ProjectState>()(
         },
 
         updatePrdStatus: (featureId, status) => {
-          set((state) => ({
-            prdStatuses: {
-              ...state.prdStatuses,
-              [featureId]: status,
-            },
-          }), false, `update-prd-status:${featureId}`)
+          set(
+            (state) => ({
+              prdStatuses: {
+                ...state.prdStatuses,
+                [featureId]: status,
+              },
+            }),
+            false,
+            `update-prd-status:${featureId}`
+          )
         },
 
         generatePrd: async (featureId, projectId) => {
           const { updatePrdStatus } = get()
-          
+
           try {
             // Set generating status
             updatePrdStatus(featureId, { status: 'generating' })
@@ -158,10 +192,10 @@ export const useProjectStore = create<ProjectState>()(
                 error: result.error || 'Generation failed',
               })
             }
-          } catch (error) {
+          } catch (error: unknown) {
             updatePrdStatus(featureId, {
               status: 'error',
-              error: 'Network error',
+              error: error instanceof Error ? error.message : 'Unknown error',
             })
           }
         },
@@ -170,15 +204,20 @@ export const useProjectStore = create<ProjectState>()(
         setCurrentProjectId: (id) => set({ currentProjectId: id }),
 
         // Reset store
-        reset: () => set({
-          currentProjectId: null,
-          nodes: [],
-          edges: [],
-          selectedNodeId: null,
-          selectedFeatureId: null,
-          sidePanelOpen: false,
-          prdStatuses: {},
-        }, false, 'reset-store'),
+        reset: () =>
+          set(
+            {
+              currentProjectId: null,
+              nodes: [],
+              edges: [],
+              selectedNodeId: null,
+              selectedFeatureId: null,
+              sidePanelOpen: false,
+              prdStatuses: {},
+            },
+            false,
+            'reset-store'
+          ),
       }),
       { name: 'cw-project-store', version: 3 }
     ),

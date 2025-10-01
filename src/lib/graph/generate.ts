@@ -99,8 +99,8 @@ function buildUserPrompt(project: ProjectRow, features: FeatureRow[]) {
 async function callGeminiGraph(
   apiKey: string,
   project: ProjectRow,
-  features: FeatureRow[],
-  signal?: AbortSignal
+  features: FeatureRow[]
+  // signal?: AbortSignal
 ): Promise<GraphResponse> {
   // Create Gemini service instance
   const geminiService = new GeminiService(apiKey)
@@ -353,7 +353,6 @@ export async function generateAndPersistProjectGraph({
   project,
   features,
   userId,
-  signal,
 }: GenerateGraphOptions) {
   if (features.length === 0) {
     throw new Error('Cannot generate graph without features')
@@ -363,7 +362,7 @@ export async function generateAndPersistProjectGraph({
 
   try {
     const apiKey = await getDecryptedUserGeminiKey(supabase, userId)
-    const geminiGraph = await callGeminiGraph(apiKey, project, features, signal)
+    const geminiGraph = await callGeminiGraph(apiKey, project, features)
     normalized = normalizeGraph(geminiGraph, features)
   } catch (error) {
     if (!(error instanceof GeminiKeyMissingError)) {

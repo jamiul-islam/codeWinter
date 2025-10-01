@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSupabaseClient } from '@/lib/supabase/server'
-import { prdGenerateSchema, prdInsertSchema } from '@/lib/schemas/prd'
-import { buildPrdContext, optimizeContextForTokenLimit } from '@/lib/graph/context-builder'
+import { prdGenerateSchema } from '@/lib/schemas/prd'
+import {
+  buildPrdContext,
+  optimizeContextForTokenLimit,
+} from '@/lib/graph/context-builder'
 import { generatePrd } from '@/lib/gemini/prd-generator'
 
 export async function POST(req: NextRequest) {
@@ -29,7 +32,10 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (projectError || !project) {
-      return NextResponse.json({ error: 'Project not found or access denied' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Project not found or access denied' },
+        { status: 404 }
+      )
     }
 
     // Get user's Gemini API key
@@ -40,9 +46,13 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (settingsError || !userSettings?.gemini_api_key) {
-      return NextResponse.json({ 
-        error: 'Gemini API key not configured. Please add your API key in settings.' 
-      }, { status: 400 })
+      return NextResponse.json(
+        {
+          error:
+            'Gemini API key not configured. Please add your API key in settings.',
+        },
+        { status: 400 }
+      )
     }
 
     // Check if PRD already exists
@@ -52,7 +62,8 @@ export async function POST(req: NextRequest) {
       .eq('feature_id', featureId)
       .single()
 
-    if (prdCheckError && prdCheckError.code !== 'PGRST116') { // PGRST116 = no rows returned
+    if (prdCheckError && prdCheckError.code !== 'PGRST116') {
+      // PGRST116 = no rows returned
       console.error('Error checking existing PRD:', prdCheckError)
       return NextResponse.json({ error: 'Database error' }, { status: 500 })
     }
@@ -95,17 +106,25 @@ export async function POST(req: NextRequest) {
 
       if (createError || !newPrd) {
         console.error('Error creating PRD record:', createError)
-        return NextResponse.json({ error: 'Failed to create PRD record' }, { status: 500 })
+        return NextResponse.json(
+          { error: 'Failed to create PRD record' },
+          { status: 500 }
+        )
       }
 
       prdId = newPrd.id
     }
 
     // Start PRD generation in background
-    generatePrdInBackground(prdId, featureId, projectId, userId, userSettings.gemini_api_key)
-      .catch(error => {
-        console.error('Background PRD generation failed:', error)
-      })
+    generatePrdInBackground(
+      prdId,
+      featureId,
+      projectId,
+      userId,
+      userSettings.gemini_api_key
+    ).catch((error) => {
+      console.error('Background PRD generation failed:', error)
+    })
 
     // Log audit entry
     await supabase.from('audit_logs').insert({
@@ -121,21 +140,27 @@ export async function POST(req: NextRequest) {
       prdId,
       status: 'generating',
     })
-
   } catch (error) {
     console.error('PRD generation request failed:', error)
-    
+
     if (error instanceof Error && error.message.includes('Invalid')) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
-    return NextResponse.json({ 
-      error: 'Internal server error' 
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+      },
+      { status: 500 }
+    )
   }
 }
 
-async function moveToVersionsTable(supabase: any, prdId: string, featureId: string) {
+async function moveToVersionsTable(
+  supabase: Awaited<ReturnType<typeof getServerSupabaseClient>>,
+  prdId: string,
+  featureId: string
+) {
   try {
     // Get current PRD data
     const { data: currentPrd, error: fetchError } = await supabase
@@ -163,7 +188,6 @@ async function moveToVersionsTable(supabase: any, prdId: string, featureId: stri
       status: currentPrd.status,
       expires_at: expiresAt.toISOString(),
     })
-
   } catch (error) {
     console.error('Failed to move PRD to versions table:', error)
     // Don't throw - this shouldn't block regeneration
@@ -212,13 +236,12 @@ async function generatePrdInBackground(
       project_id: projectId,
       feature_id: featureId,
       action: 'prd_generate_completed',
-      payload: { 
-        prdId, 
+      payload: {
+        prdId,
         tokenCount: result.tokenCount,
-        modelUsed: result.modelUsed 
+        modelUsed: result.modelUsed,
       },
     })
-
   } catch (error) {
     console.error('PRD generation failed:', error)
 
@@ -237,9 +260,9 @@ async function generatePrdInBackground(
       project_id: projectId,
       feature_id: featureId,
       action: 'prd_generate_failed',
-      payload: { 
-        prdId, 
-        error: error instanceof Error ? error.message : 'Unknown error'
+      payload: {
+        prdId,
+        error: error instanceof Error ? error.message : 'Unknown error',
       },
     })
   }
