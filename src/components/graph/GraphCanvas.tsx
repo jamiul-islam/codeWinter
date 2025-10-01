@@ -1,11 +1,6 @@
 'use client'
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import ReactFlow, {
   Background,
   Controls,
@@ -19,7 +14,12 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import debounce from 'lodash.debounce'
 
-import { AppCardNode, FeatureHubNode, FeatureNode } from '@/components/graph/nodes'
+import {
+  AppCardNode,
+  FeatureHubNode,
+  FeatureNode,
+} from '@/components/graph/nodes'
+import { NodeSidePanel } from '@/components/graph/NodeSidePanel'
 import {
   Modal,
   ModalDescription,
@@ -29,7 +29,10 @@ import {
 } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useProjectStore, type FeatureNodeState } from '@/lib/store/project-store'
+import {
+  useProjectStore,
+  type FeatureNodeState,
+} from '@/lib/store/project-store'
 
 type RenameState = { id: string; title: string }
 type DeleteState = { id: string; title: string }
@@ -52,6 +55,15 @@ function GraphCanvasInner() {
   const upsertNode = useProjectStore((state) => state.upsertNode)
   const deleteNode = useProjectStore((state) => state.deleteNode)
   const currentProjectId = useProjectStore((state) => state.currentProjectId)
+
+  // PRD state
+  const selectedFeatureId = useProjectStore((state) => state.selectedFeatureId)
+  const sidePanelOpen = useProjectStore((state) => state.sidePanelOpen)
+  const prdStatuses = useProjectStore((state) => state.prdStatuses)
+  const setSelectedFeature = useProjectStore(
+    (state) => state.setSelectedFeature
+  )
+  const setSidePanelOpen = useProjectStore((state) => state.setSidePanelOpen)
 
   const [renameTarget, setRenameTarget] = useState<RenameState | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -95,7 +107,10 @@ function GraphCanvasInner() {
           await fetch(`/api/projects/${currentProjectId}/graph`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nodes: nodesToPersist, edges: edgesToPersist }),
+            body: JSON.stringify({
+              nodes: nodesToPersist,
+              edges: edgesToPersist,
+            }),
           })
         } catch (error) {
           console.error('Failed to persist graph', error)
@@ -126,7 +141,10 @@ function GraphCanvasInner() {
         if (change.type === 'position') {
           const node = updatedNodes.find((item) => item.id === change.id)
           if (!node) return
-          const nextNode = { ...node, position: change.position ?? node.position }
+          const nextNode = {
+            ...node,
+            position: change.position ?? node.position,
+          }
           upsertNode(nextNode)
           updatedNodes = updatedNodes.map((item) =>
             item.id === node.id ? nextNode : item
@@ -139,16 +157,34 @@ function GraphCanvasInner() {
     [nodes, edges, upsertNode, persistGraph]
   )
 
+  const handlePrdClick = useCallback(
+    (featureId: string) => {
+      setSelectedFeature(featureId)
+      setSidePanelOpen(true)
+    },
+    [setSelectedFeature, setSidePanelOpen]
+  )
+
+  const handleCloseSidePanel = useCallback(() => {
+    setSidePanelOpen(false)
+    setSelectedFeature(null)
+  }, [setSidePanelOpen, setSelectedFeature])
+
   const interactiveNodes = useMemo(
     () =>
       nodes.map((node) => {
         const payload = (node.data ?? {}) as Record<string, unknown>
         if (payload.kind === 'feature') {
+          const featureId = payload.featureId as string
+          const prdStatus = prdStatuses[featureId]
+
           return {
             ...node,
             draggable: true,
             data: {
               ...payload,
+              prdStatus: prdStatus?.status || 'idle',
+              prdError: prdStatus?.error,
               onRename: (id: string, title: string) => {
                 setRenameTarget({ id, title })
                 setRenameValue(title)
@@ -158,6 +194,7 @@ function GraphCanvasInner() {
                 setDeleteTarget({ id, title })
                 setDeleteError(null)
               },
+              onPrdClick: handlePrdClick,
             },
           }
         }
@@ -167,7 +204,7 @@ function GraphCanvasInner() {
           draggable: false,
         }
       }),
-    [nodes]
+    [nodes, prdStatuses, handlePrdClick]
   )
 
   const closeRename = () => {
@@ -227,7 +264,9 @@ function GraphCanvasInner() {
       closeRename()
     } catch (error) {
       console.error(error)
-      setRenameError(error instanceof Error ? error.message : 'Unable to rename feature')
+      setRenameError(
+        error instanceof Error ? error.message : 'Unable to rename feature'
+      )
       upsertNode(fallbackNode)
     } finally {
       setIsRenaming(false)
@@ -263,57 +302,82 @@ function GraphCanvasInner() {
       closeDelete()
     } catch (error) {
       console.error(error)
-      setDeleteError(error instanceof Error ? error.message : 'Unable to delete feature')
+      setDeleteError(
+        error instanceof Error ? error.message : 'Unable to delete feature'
+      )
     } finally {
       setIsDeleting(false)
     }
   }
 
+  // Get selected feature data
+  const selectedFeature = selectedFeatureId
+    ? nodes.find((node) => {
+        const payload = (node.data ?? {}) as Record<string, unknown>
+        return payload.featureId === selectedFeatureId
+      })
+    : null
+
+  const selectedFeatureTitle = selectedFeature
+    ? (selectedFeature.data as { title?: string })?.title || 'Feature'
+    : undefined
+
   return (
-    <div className="relative h-[520px] w-full overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/20">
-      <ReactFlow
-        nodes={interactiveNodes as Node[]}
-        edges={edges}
-        onNodesChange={handleNodesChange}
-        fitView
-        nodeTypes={nodeTypes}
-        proOptions={{ hideAttribution: true }}
-        panOnScroll
-        selectionOnDrag
-        style={{ width: '100%', height: '100%' }}
-      >
-        <MiniMap
-          nodeStrokeColor={(node) =>
-            node.type === 'featureNode' ? '#6EE7F9' : '#A78BFA'
-          }
-          nodeColor={(node) =>
-            node.type === 'featureNode' ? '#0f172a' : '#1e293b'
-          }
+    <>
+      <div className="relative h-[520px] w-full overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/20">
+        <ReactFlow
+          nodes={interactiveNodes as Node[]}
+          edges={edges}
+          onNodesChange={handleNodesChange}
+          fitView
+          nodeTypes={nodeTypes}
+          proOptions={{ hideAttribution: true }}
+          panOnScroll
+          selectionOnDrag
+          style={{ width: '100%', height: '100%' }}
+        >
+          <MiniMap
+            nodeStrokeColor={(node) =>
+              node.type === 'featureNode' ? '#6EE7F9' : '#A78BFA'
+            }
+            nodeColor={(node) =>
+              node.type === 'featureNode' ? '#0f172a' : '#1e293b'
+            }
+          />
+          <Controls className="rounded-full border border-white/10 bg-slate-900/80 text-slate-100" />
+          <Background gap={24} color="rgba(148, 163, 184, 0.12)" />
+        </ReactFlow>
+
+        <RenameModal
+          isOpen={Boolean(renameTarget)}
+          currentTitle={renameTarget?.title ?? ''}
+          value={renameValue}
+          error={renameError}
+          isSaving={isRenaming}
+          onChange={setRenameValue}
+          onClose={closeRename}
+          onSubmit={submitRename}
         />
-        <Controls className="rounded-full border border-white/10 bg-slate-900/80 text-slate-100" />
-        <Background gap={24} color="rgba(148, 163, 184, 0.12)" />
-      </ReactFlow>
 
-      <RenameModal
-        isOpen={Boolean(renameTarget)}
-        currentTitle={renameTarget?.title ?? ''}
-        value={renameValue}
-        error={renameError}
-        isSaving={isRenaming}
-        onChange={setRenameValue}
-        onClose={closeRename}
-        onSubmit={submitRename}
-      />
+        <DeleteModal
+          isOpen={Boolean(deleteTarget)}
+          featureTitle={deleteTarget?.title ?? ''}
+          isDeleting={isDeleting}
+          error={deleteError}
+          onClose={closeDelete}
+          onConfirm={confirmDelete}
+        />
+      </div>
 
-      <DeleteModal
-        isOpen={Boolean(deleteTarget)}
-        featureTitle={deleteTarget?.title ?? ''}
-        isDeleting={isDeleting}
-        error={deleteError}
-        onClose={closeDelete}
-        onConfirm={confirmDelete}
+      {/* PRD Side Panel */}
+      <NodeSidePanel
+        featureId={selectedFeatureId}
+        featureTitle={selectedFeatureTitle}
+        projectId={currentProjectId || undefined}
+        isOpen={sidePanelOpen}
+        onClose={handleCloseSidePanel}
       />
-    </div>
+    </>
   )
 }
 
@@ -345,7 +409,8 @@ function RenameModal({
       <ModalHeader>
         <ModalTitle>Rename feature</ModalTitle>
         <ModalDescription>
-          Give <span className="font-semibold text-white">{currentTitle}</span> a new label.
+          Give <span className="font-semibold text-white">{currentTitle}</span>{' '}
+          a new label.
         </ModalDescription>
       </ModalHeader>
 
@@ -357,18 +422,13 @@ function RenameModal({
         className="mt-2"
       />
 
-      {error && (
-        <p className="mt-3 text-sm text-rose-300">{error}</p>
-      )}
+      {error && <p className="mt-3 text-sm text-rose-300">{error}</p>}
 
       <ModalFooter>
         <Button variant="ghost" onClick={onClose} disabled={isSaving}>
           Cancel
         </Button>
-        <Button
-          onClick={onSubmit}
-          disabled={isSaving}
-        >
+        <Button onClick={onSubmit} disabled={isSaving}>
           {isSaving ? 'Saving...' : 'Save changes'}
         </Button>
       </ModalFooter>
@@ -400,17 +460,18 @@ function DeleteModal({
       <ModalHeader>
         <ModalTitle>Delete feature</ModalTitle>
         <ModalDescription>
-          This removes <span className="font-semibold text-white">{featureTitle}</span> and any generated PRDs.
+          This removes{' '}
+          <span className="font-semibold text-white">{featureTitle}</span> and
+          any generated PRDs.
         </ModalDescription>
       </ModalHeader>
 
       <p className="text-sm text-slate-300">
-        This action cannot be undone. The node, its edges, and stored PRDs will be deleted.
+        This action cannot be undone. The node, its edges, and stored PRDs will
+        be deleted.
       </p>
 
-      {error && (
-        <p className="mt-3 text-sm text-rose-300">{error}</p>
-      )}
+      {error && <p className="mt-3 text-sm text-rose-300">{error}</p>}
 
       <ModalFooter>
         <Button variant="ghost" onClick={onClose} disabled={isDeleting}>

@@ -25,9 +25,10 @@ export function encryptApiKey(apiKey: string): string {
     // Return iv:tag:encrypted as hex string
     return `${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to encrypt API key'
+    const message =
+      error instanceof Error ? error.message : 'Failed to encrypt API key'
     console.error('Failed to encrypt API key:', message)
-    throw (error instanceof Error ? error : new Error(message))
+    throw error instanceof Error ? error : new Error(message)
   }
 }
 
@@ -55,9 +56,10 @@ export function decryptApiKey(encryptedString: string): string {
     ])
     return decrypted.toString('utf8')
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to decrypt API key'
+    const message =
+      error instanceof Error ? error.message : 'Failed to decrypt API key'
     console.error('Failed to decrypt API key:', message)
-    throw (error instanceof Error ? error : new Error(message))
+    throw error instanceof Error ? error : new Error(message)
   }
 }
 
@@ -85,11 +87,8 @@ export async function verifyGeminiAPIKey(apiKey: string): Promise<boolean> {
 
   try {
     const response = await fetch(apiUrl)
-    console.log('Gemini key validation status:', response.status)
 
     if (response.ok) {
-      // The response status is in the 200-299 range, which indicates success.
-      console.log('The API key is valid!')
       return true
     } else {
       // The response status is an error (e.g., 401 Unauthorized, 403 Forbidden).
@@ -101,7 +100,9 @@ export async function verifyGeminiAPIKey(apiKey: string): Promise<boolean> {
   } catch (error) {
     // This catches network errors or other issues.
     const message = error instanceof Error ? error.message : 'Unknown error'
-    console.error(`An error occurred while validating Gemini API key: ${message}`)
+    console.error(
+      `An error occurred while validating Gemini API key: ${message}`
+    )
     return false
   }
 }

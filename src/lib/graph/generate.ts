@@ -5,6 +5,7 @@ import {
   GeminiKeyMissingError,
   getDecryptedUserGeminiKey,
 } from '@/lib/gemini/server'
+import { GeminiService } from '@/lib/services/GeminiService'
 import type {
   PersistedGraphEdge,
   PersistedGraphNode,
@@ -13,7 +14,7 @@ import type {
 } from '@/lib/graph/types'
 import type { Database, Tables, Json } from '@/lib/supabase/types'
 
-const GEMINI_GRAPH_MODEL = 'gemini-1.5-flash'
+// Model is now handled by GeminiService
 
 const systemPrompt = `You are an expert software architect generating a minimal, coherent feature graph for an MVP product.
 Respond with valid JSON only. Do not include markdown fences.
@@ -86,7 +87,10 @@ type NormalizedGraph = {
 
 function buildUserPrompt(project: ProjectRow, features: FeatureRow[]) {
   const featureList = features
-    .map((feature) => `- {"id":"${feature.id}","title":${JSON.stringify(feature.title)}}`)
+    .map(
+      (feature) =>
+        `- {"id":"${feature.id}","title":${JSON.stringify(feature.title)}}`
+    )
     .join('\n')
 
   return `Project: ${project.name}\nDescription: ${project.description}\n\nFeatures (use the EXACT ids when returning nodes/edges):\n${featureList}\n\nTask:\n1) Group related features if useful.\n2) Suggest directed edges showing dependencies or data flow (source -> target).\n3) Provide concise labels.\n4) Add a short note describing each edge.\n\nReturn JSON: {"nodes":[{"id":"featureId","label":"...","note":"..."}],"edges":[{"source":"featureId","target":"featureId","note":"..."}],"layout":{"algorithm":"dagre","hints":[{"id":"featureId","rank":0}]}}`
@@ -95,45 +99,18 @@ function buildUserPrompt(project: ProjectRow, features: FeatureRow[]) {
 async function callGeminiGraph(
   apiKey: string,
   project: ProjectRow,
-  features: FeatureRow[],
-  signal?: AbortSignal,
+  features: FeatureRow[]
+  // signal?: AbortSignal
 ): Promise<GraphResponse> {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_GRAPH_MODEL}:generateContent?key=${apiKey}`
+  // Create Gemini service instance
+  const geminiService = new GeminiService(apiKey)
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      systemInstruction: {
-        role: 'system',
-        parts: [{ text: systemPrompt }],
-      },
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: buildUserPrompt(project, features) }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.2,
-      },
-    }),
-    signal,
-  })
+  // Add system instruction and user prompt
+  geminiService.addSystemInstruction(systemPrompt)
+  geminiService.addUserPrompt(buildUserPrompt(project, features))
 
-  const payload = await response.json()
-
-  if (!response.ok) {
-    const message =
-      payload?.error?.message || `Gemini returned ${response.status}`
-    throw new Error(message)
-  }
-
-  const text: string | undefined = payload?.candidates?.[0]?.content?.parts
-    ?.map((part: { text?: string }) => part.text)
-    .join('')
+  // Generate content
+  const text = await geminiService.generateContent()
 
   if (!text) {
     throw new Error('Gemini response did not include text content')
@@ -166,7 +143,7 @@ function parseJsonText(text: string): unknown {
 function normalizeGraph(
   raw: GraphResponse,
   features: FeatureRow[],
-  fallback = false,
+  fallback = false
 ): NormalizedGraph {
   const featureMap = new Map(features.map((feature) => [feature.id, feature]))
   const titleMap = new Map(
@@ -175,8 +152,8 @@ function normalizeGraph(
 
   const nodes: NormalizedFeature[] = features.map((feature) => {
     const candidate = raw.nodes.find((node) => node.id === feature.id)
-    const fallbackByLabel = raw.nodes.find((node) =>
-      node.label?.toLowerCase() === feature.title.toLowerCase()
+    const fallbackByLabel = raw.nodes.find(
+      (node) => node.label?.toLowerCase() === feature.title.toLowerCase()
     )
 
     const chosen = candidate ?? fallbackByLabel
@@ -213,14 +190,14 @@ function normalizeGraph(
     edges,
     droppedEdges,
     usedFallback: fallback,
-    model: fallback ? null : GEMINI_GRAPH_MODEL,
+    model: fallback ? null : 'gemini-2.0-flash',
   }
 }
 
 function resolveFeatureId(
   key: string,
   featureMap: Map<string, FeatureRow>,
-  titleMap: Map<string, FeatureRow>,
+  titleMap: Map<string, FeatureRow>
 ): string | null {
   if (featureMap.has(key)) return key
   const keyTrimmed = key.trim().toLowerCase()
@@ -243,8 +220,11 @@ function computeFeaturePositions(count: number) {
 function buildPersistedGraph(
   project: ProjectRow,
   normalized: NormalizedGraph,
-  features: FeatureRow[],
-): { graph: PersistedGraphPayload; featurePositions: Record<string, { x: number; y: number }> } {
+  features: FeatureRow[]
+): {
+  graph: PersistedGraphPayload
+  featurePositions: Record<string, { x: number; y: number }>
+} {
   const featurePositions = computeFeaturePositions(features.length)
 
   const appNodeId = `project:${project.id}`
@@ -279,23 +259,25 @@ function buildPersistedGraph(
     },
   }
 
-  const featureNodes: PersistedGraphNode[] = normalized.nodes.map((node, index) => {
-    const featureData: JsonRecord = {
-      kind: 'feature',
-      featureId: node.id,
-      title: node.title,
-      note: node.note ?? null,
-      status: 'idle',
-      order: index,
-    }
+  const featureNodes: PersistedGraphNode[] = normalized.nodes.map(
+    (node, index) => {
+      const featureData: JsonRecord = {
+        kind: 'feature',
+        featureId: node.id,
+        title: node.title,
+        note: node.note ?? null,
+        status: 'idle',
+        order: index,
+      }
 
-    return {
-      id: node.id,
-      type: 'featureNode',
-      position: featurePositions[index] ?? { x: 240, y: index * 160 },
-      data: featureData,
+      return {
+        id: node.id,
+        type: 'featureNode',
+        position: featurePositions[index] ?? { x: 240, y: index * 160 },
+        data: featureData,
+      }
     }
-  })
+  )
 
   const graphNodes = [appNode, hubNode, ...featureNodes]
 
@@ -318,21 +300,25 @@ function buildPersistedGraph(
         kind: 'hub-feature',
         note: normalized.nodes[index]?.note ?? null,
       },
-      label: normalized.nodes[index]?.note ? truncate(normalized.nodes[index]?.note ?? '', 48) : undefined,
+      label: normalized.nodes[index]?.note
+        ? truncate(normalized.nodes[index]?.note ?? '', 48)
+        : undefined,
     })),
   ]
 
-  const dependencyEdges: PersistedGraphEdge[] = normalized.edges.map((edge, index) => ({
-    id: `dep-${edge.source}-${edge.target}-${index}`,
-    source: edge.source,
-    target: edge.target,
-    type: 'smoothstep',
-    data: {
-      kind: 'dependency',
-      note: edge.note ?? null,
-    },
-    label: edge.note ? truncate(edge.note, 56) : undefined,
-  }))
+  const dependencyEdges: PersistedGraphEdge[] = normalized.edges.map(
+    (edge, index) => ({
+      id: `dep-${edge.source}-${edge.target}-${index}`,
+      source: edge.source,
+      target: edge.target,
+      type: 'smoothstep',
+      data: {
+        kind: 'dependency',
+        note: edge.note ?? null,
+      },
+      label: edge.note ? truncate(edge.note, 56) : undefined,
+    })
+  )
 
   const graph: PersistedGraphPayload = {
     nodes: graphNodes,
@@ -367,7 +353,6 @@ export async function generateAndPersistProjectGraph({
   project,
   features,
   userId,
-  signal,
 }: GenerateGraphOptions) {
   if (features.length === 0) {
     throw new Error('Cannot generate graph without features')
@@ -377,7 +362,7 @@ export async function generateAndPersistProjectGraph({
 
   try {
     const apiKey = await getDecryptedUserGeminiKey(supabase, userId)
-    const geminiGraph = await callGeminiGraph(apiKey, project, features, signal)
+    const geminiGraph = await callGeminiGraph(apiKey, project, features)
     normalized = normalizeGraph(geminiGraph, features)
   } catch (error) {
     if (!(error instanceof GeminiKeyMissingError)) {
@@ -389,7 +374,7 @@ export async function generateAndPersistProjectGraph({
   const { graph, featurePositions } = buildPersistedGraph(
     project,
     normalized,
-    features,
+    features
   )
 
   const graphJson = graph as unknown as Json
@@ -423,7 +408,7 @@ export async function generateAndPersistProjectGraph({
 
 async function persistFeaturePositions(
   supabase: SupabaseClient<Database>,
-  positions: Record<string, { x: number; y: number }>,
+  positions: Record<string, { x: number; y: number }>
 ) {
   const entries = Object.entries(positions)
   for (const [featureId, position] of entries) {
@@ -441,7 +426,7 @@ async function persistFeaturePositions(
 async function persistFeatureEdges(
   supabase: SupabaseClient<Database>,
   projectId: string,
-  edges: NormalizedEdge[],
+  edges: NormalizedEdge[]
 ) {
   const { error: deleteError } = await supabase
     .from('feature_edges')

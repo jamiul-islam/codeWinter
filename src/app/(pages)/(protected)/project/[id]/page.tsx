@@ -8,6 +8,9 @@ import { PageLoader } from '@/components/loaders'
 import { GraphCanvas } from '@/components/graph'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { PrdCard } from '@/components/prd/PrdCard'
+import { EmptyPrdsState } from '@/components/prd/EmptyPrdsState'
+import { NodeSidePanel } from '@/components/graph/NodeSidePanel'
 
 interface Project {
   id: string
@@ -38,6 +41,16 @@ type FeatureRecord = {
   notes?: string | null
   position?: { x: number; y: number } | null
   feature_prds?: Array<{ status: FeatureNodeState['status'] }>
+}
+
+type FeatureWithPrd = {
+  id: string
+  title: string
+  prdStatus: 'idle' | 'generating' | 'ready' | 'error'
+  prdId?: string
+  prdPreview?: string
+  prdError?: string
+  lastUpdated?: string
 }
 
 type FeatureEdgeRecord = {
@@ -92,11 +105,17 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const [error, setError] = useState<string | null>(null)
   const [project, setProject] = useState<Project | null>(null)
   const [activePanel, setActivePanel] = useState<PanelKey>('dashboard')
+  const [featuresWithPrds, setFeaturesWithPrds] = useState<FeatureWithPrd[]>([])
+  const [loadingPrds, setLoadingPrds] = useState(false)
 
   const resetStore = useProjectStore((state) => state.reset)
   const upsertNode = useProjectStore((state) => state.upsertNode)
   const addEdgeToStore = useProjectStore((state) => state.addEdge)
   const setCurrentProjectId = useProjectStore((state) => state.setCurrentProjectId)
+  const setSelectedFeature = useProjectStore((state) => state.setSelectedFeature)
+  const setSidePanelOpen = useProjectStore((state) => state.setSidePanelOpen)
+  const selectedFeatureId = useProjectStore((state) => state.selectedFeatureId)
+  const isSidePanelOpen = useProjectStore((state) => state.sidePanelOpen)
 
   const fetchProjectData = useCallback(async () => {
     setLoading(true)
@@ -167,6 +186,46 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     }
   }, [id, resetStore, upsertNode, addEdgeToStore, setCurrentProjectId])
 
+  const fetchFeaturesWithPrds = useCallback(async () => {
+    if (!id) return
+
+    setLoadingPrds(true)
+    try {
+      const res = await fetch(`/api/projects/${id}/prds`)
+      const data = await res.json()
+
+      if (res.ok && Array.isArray(data.features)) {
+        const featuresWithPrdData: FeatureWithPrd[] = data.features.map((feature: {
+          id: string
+          title: string
+          prd: { status: string; id: string; summary: string; error: string; updated_at: string } | null
+        }) => ({
+          id: feature.id,
+          title: feature.title,
+          prdStatus: feature.prd?.status || 'idle',
+          prdId: feature.prd?.id,
+          prdPreview: feature.prd?.summary?.slice(0, 150),
+          prdError: feature.prd?.error,
+          lastUpdated: feature.prd?.updated_at,
+        }))
+        setFeaturesWithPrds(featuresWithPrdData)
+      }
+    } catch (error) {
+      console.error('Failed to fetch PRDs:', error)
+    } finally {
+      setLoadingPrds(false)
+    }
+  }, [id])
+
+  const handlePrdCardClick = useCallback((featureId: string) => {
+    setSelectedFeature(featureId)
+    setSidePanelOpen(true)
+  }, [setSelectedFeature, setSidePanelOpen])
+
+  const handleGoToCanvas = useCallback(() => {
+    setActivePanel('dashboard')
+  }, [])
+
   useEffect(() => {
     fetchProjectData()
     return () => {
@@ -175,6 +234,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       setProject(null)
     }
   }, [fetchProjectData, resetStore, setCurrentProjectId])
+
+  useEffect(() => {
+    if (activePanel === 'prds') {
+      fetchFeaturesWithPrds()
+    }
+  }, [activePanel, fetchFeaturesWithPrds])
 
   if (loading) return <PageLoader />
 
@@ -316,39 +381,33 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           )}
 
           {activePanel === 'prds' && (
-            <section className="space-y-4 rounded-3xl border border-white/10 bg-white/5 p-8 text-center shadow-inner shadow-black/30">
-              <div className="mx-auto flex size-14 items-center justify-center rounded-3xl border border-cyan-400/30 bg-cyan-400/10 text-cyan-200 shadow-sm shadow-cyan-500/30">
-                <svg
-                  aria-hidden
-                  viewBox="0 0 24 24"
-                  className="h-6 w-6"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                >
-                  <path
-                    d="M6 4h7l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path d="M13 4v6h6" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M8 14h8M8 17h5" strokeLinecap="round" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-semibold text-white">PRD drawer is coming soon</h2>
-              <p className="mx-auto max-w-xl text-sm text-slate-300">
-                Once feature nodes have PRDs, they will gather here with export-ready formatting.
-                Keep refining the graph so each node has the right context for generation.
-              </p>
-              <div className="mt-4 flex flex-wrap justify-center gap-3">
-                <Button size="sm" className="min-w-[160px]" disabled>
-                  Generate first PRD
-                </Button>
-                <Button variant="secondary" size="sm" disabled>
-                  Upload manual draft
-                </Button>
-              </div>
-            </section>
+            <div className="space-y-6">
+              {loadingPrds ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-cyan-400/20 border-t-cyan-400" />
+                    <p className="mt-4 text-sm text-slate-400">Loading PRDs...</p>
+                  </div>
+                </div>
+              ) : featuresWithPrds.length === 0 ? (
+                <EmptyPrdsState onGoToCanvas={handleGoToCanvas} />
+              ) : (
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {featuresWithPrds.map((feature) => (
+                    <PrdCard
+                      key={feature.id}
+                      featureId={feature.id}
+                      featureTitle={feature.title}
+                      prdStatus={feature.prdStatus}
+                      prdPreview={feature.prdPreview}
+                      lastUpdated={feature.lastUpdated}
+                      prdError={feature.prdError}
+                      onClick={() => handlePrdCardClick(feature.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {activePanel === 'settings' && (
@@ -403,6 +462,18 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           )}
         </section>
       </div>
+
+      {/* Node Side Panel for PRD viewing/editing */}
+      <NodeSidePanel
+        featureId={selectedFeatureId}
+        featureTitle={
+          featuresWithPrds.find(f => f.id === selectedFeatureId)?.title || 
+          'Feature'
+        }
+        projectId={id}
+        isOpen={isSidePanelOpen}
+        onClose={() => setSidePanelOpen(false)}
+      />
     </main>
   )
 }

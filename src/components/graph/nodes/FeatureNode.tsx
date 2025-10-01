@@ -5,6 +5,7 @@ import { Handle, Position, type NodeProps } from 'reactflow'
 
 import { cn } from '@/lib/utils'
 import type { NodeStatus } from '@/lib/store/project-store'
+import { PrdStatusBadge } from './PrdStatusBadge'
 
 type FeatureNodeData = {
   kind: 'feature'
@@ -13,8 +14,11 @@ type FeatureNodeData = {
   note?: string | null
   status: NodeStatus
   order?: number
+  prdStatus?: 'idle' | 'generating' | 'ready' | 'error'
+  prdError?: string
   onRename?: (featureId: string, currentTitle: string) => void
   onDelete?: (featureId: string, currentTitle: string) => void
+  onPrdClick?: (featureId: string, title: string) => void
 }
 
 const statusConfig: Record<
@@ -93,6 +97,23 @@ export const FeatureNode = memo(({ data }: NodeProps<FeatureNodeData>) => {
         </p>
       )}
 
+      {/* PRD Status Badge */}
+      <div className="mt-3 flex items-center justify-between">
+        <PrdStatusBadge 
+          status={data.prdStatus || 'idle'} 
+          error={data.prdError}
+          showText={false}
+          className="cursor-pointer"
+          onClick={() => data.onPrdClick?.(data.featureId, data.title)}
+        />
+        <button
+          onClick={() => data.onPrdClick?.(data.featureId, data.title)}
+          className="text-xs text-slate-400 hover:text-cyan-300 transition-colors"
+        >
+          View PRD
+        </button>
+      </div>
+
       <Handle
         type="target"
         position={Position.Left}
@@ -117,7 +138,7 @@ function IconButton({ className, ...props }: IconButtonProps) {
       type="button"
       className={cn(
         'flex size-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-200 transition',
-        'hover:border-cyan-300/50 hover:bg-cyan-400/10 hover:text-cyan-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300',
+        'hover:border-cyan-300/50 hover:bg-cyan-400/10 hover:text-cyan-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300',
         className
       )}
       {...props}
