@@ -195,7 +195,11 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       const data = await res.json()
 
       if (res.ok && Array.isArray(data.features)) {
-        const featuresWithPrdData: FeatureWithPrd[] = data.features.map((feature: any) => ({
+        const featuresWithPrdData: FeatureWithPrd[] = data.features.map((feature: {
+          id: string
+          title: string
+          prd: { status: string; id: string; summary: string; error: string; updated_at: string } | null
+        }) => ({
           id: feature.id,
           title: feature.title,
           prdStatus: feature.prd?.status || 'idle',
