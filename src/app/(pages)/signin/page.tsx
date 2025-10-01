@@ -34,7 +34,7 @@ export default function SignInPage() {
             href="/"
             className="inline-flex items-center justify-center text-2xl font-semibold text-white transition hover:text-cyan-200"
           >
-            code<span className="ml-1 text-cyan-300">Winter</span>
+            code<span className="text-cyan-300">Winter </span> ❄️
           </Link>
           <h1 className="text-3xl font-semibold text-white">Welcome back</h1>
           <p className="text-sm text-slate-300">
