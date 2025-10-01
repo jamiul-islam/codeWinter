@@ -3,7 +3,6 @@ import type { Database } from '@/lib/supabase/types'
 
 type Feature = Database['public']['Tables']['features']['Row']
 type Project = Database['public']['Tables']['projects']['Row']
-type FeatureEdge = Database['public']['Tables']['feature_edges']['Row']
 
 export interface PrdContext {
   project: Project
@@ -90,10 +89,14 @@ export async function buildPrdContext(
     }
 
     connectedFeatures = features || []
-    
+
     // Separate incoming and outgoing
-    incomingFeatures = connectedFeatures.filter(f => incomingFeatureIds.has(f.id))
-    outgoingFeatures = connectedFeatures.filter(f => outgoingFeatureIds.has(f.id))
+    incomingFeatures = connectedFeatures.filter((f) =>
+      incomingFeatureIds.has(f.id)
+    )
+    outgoingFeatures = connectedFeatures.filter((f) =>
+      outgoingFeatureIds.has(f.id)
+    )
   }
 
   // Estimate token count for context optimization
@@ -122,24 +125,24 @@ function estimateTokenCount(context: {
 }): number {
   // Rough token estimation (1 token ≈ 4 characters)
   let totalChars = 0
-  
+
   // Project context
   totalChars += context.project.name.length
   totalChars += context.project.description.length
-  
+
   // Target feature
   totalChars += context.targetFeature.title.length
   totalChars += (context.targetFeature.notes || '').length
-  
+
   // Connected features
-  context.connectedFeatures.forEach(feature => {
+  context.connectedFeatures.forEach((feature) => {
     totalChars += feature.title.length
     totalChars += (feature.notes || '').length * 0.5 // Reduced weight for connected features
   })
-  
+
   // Add prompt template overhead (approximately 1000 characters)
   totalChars += 1000
-  
+
   return Math.ceil(totalChars / 4)
 }
 
@@ -165,11 +168,11 @@ export function optimizeContextForTokenLimit(
     ...context,
     connectedFeatures: prioritizedFeatures,
     dependencies: {
-      incoming: context.dependencies.incoming.filter(f => 
-        prioritizedFeatures.some(pf => pf.id === f.id)
+      incoming: context.dependencies.incoming.filter((f) =>
+        prioritizedFeatures.some((pf) => pf.id === f.id)
       ),
-      outgoing: context.dependencies.outgoing.filter(f => 
-        prioritizedFeatures.some(pf => pf.id === f.id)
+      outgoing: context.dependencies.outgoing.filter((f) =>
+        prioritizedFeatures.some((pf) => pf.id === f.id)
       ),
     },
     totalTokenEstimate: estimateTokenCount({

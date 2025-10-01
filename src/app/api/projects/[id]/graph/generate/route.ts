@@ -5,7 +5,7 @@ import { getServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const { id: projectId } = await context.params
 
@@ -16,7 +16,10 @@ export async function POST(
     const userId = userData.user?.id
 
     if (!userId) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
 
     const { data: project, error: projectError } = await supabase
@@ -26,7 +29,10 @@ export async function POST(
       .single()
 
     if (projectError || !project) {
-      return NextResponse.json({ error: projectError?.message || 'Project not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: projectError?.message || 'Project not found' },
+        { status: 404 }
+      )
     }
 
     const { data: features, error: featuresError } = await supabase
@@ -35,11 +41,17 @@ export async function POST(
       .eq('project_id', projectId)
 
     if (featuresError) {
-      return NextResponse.json({ error: featuresError.message }, { status: 500 })
+      return NextResponse.json(
+        { error: featuresError.message },
+        { status: 500 }
+      )
     }
 
     if (!features?.length) {
-      return NextResponse.json({ error: 'No features found for this project' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'No features found for this project' },
+        { status: 400 }
+      )
     }
 
     const { graph, normalized } = await generateAndPersistProjectGraph({
@@ -47,7 +59,6 @@ export async function POST(
       project,
       features,
       userId,
-      signal: req.signal,
     })
 
     return NextResponse.json({ graph, summary: normalized })
