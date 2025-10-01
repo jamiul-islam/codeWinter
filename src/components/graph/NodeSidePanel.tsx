@@ -26,7 +26,7 @@ interface PrdData {
   status: PrdStatus
   summary?: string
   prdMd?: string
-  prdJson?: any
+  prdJson?: Record<string, unknown>
   error?: string
   lastGenerated?: string
 }
@@ -62,6 +62,7 @@ export function NodeSidePanel({
     if (featureId && isOpen) {
       fetchPrdData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [featureId, isOpen])
 
   // Poll for status updates when generating
@@ -95,6 +96,7 @@ export function NodeSidePanel({
       setWasGenerating(false)
       setIsRegenerating(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prdData?.status, wasGenerating, isRegenerating, featureTitle])
 
   // Only show toast notifications for user-initiated actions
