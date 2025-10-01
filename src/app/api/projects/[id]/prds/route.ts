@@ -16,17 +16,49 @@ export async function GET(
       return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
     }
 
-    // Count PRDs linked to features in this project
-    const { count, error } = await supabase
-      .from('feature_prds')
-      .select('id, features!inner(project_id)', { count: 'exact', head: true })
-      .eq('features.project_id', projectId)
+    // Fetch all features for this project
+    const { data: features, error: featuresError } = await supabase
+      .from('features')
+      .select('id, title, created_at')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: true })
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (featuresError) {
+      return NextResponse.json({ error: featuresError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ count: count || 0 })
+    if (!features || features.length === 0) {
+      return NextResponse.json({ features: [] })
+    }
+
+    // Fetch PRDs for these features
+    const featureIds = features.map(f => f.id)
+    const { data: prds, error: prdsError } = await supabase
+      .from('feature_prds')
+      .select('id, feature_id, status, summary, error, updated_at')
+      .in('feature_id', featureIds)
+
+    if (prdsError) {
+      console.error('Error fetching PRDs:', prdsError)
+      // Continue without PRDs rather than failing
+    }
+
+    // Create a map of PRDs by feature_id for quick lookup
+    const prdsByFeatureId = new Map()
+    if (prds) {
+      prds.forEach(prd => {
+        prdsByFeatureId.set(prd.feature_id, prd)
+      })
+    }
+
+    // Combine features with their PRDs
+    const featuresWithPrds = features.map(feature => ({
+      id: feature.id,
+      title: feature.title,
+      prd: prdsByFeatureId.get(feature.id) || null,
+    }))
+
+    return NextResponse.json({ features: featuresWithPrds })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch PRD count'
     return NextResponse.json({ error: message }, { status: 500 })
