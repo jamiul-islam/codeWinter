@@ -56,31 +56,20 @@ export function PrdCard({
         'hover:border-cyan-400/40 hover:bg-cyan-400/5 hover:shadow-cyan-500/20',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400',
         prdStatus === 'ready' && 'cursor-pointer',
-        prdStatus === 'generating' && 'cursor-wait',
-        prdStatus === 'error' && 'cursor-not-allowed'
+        prdStatus === 'generating' && 'cursor-wait'
       )}
       disabled={prdStatus === 'idle' || prdStatus === 'error'}
     >
-      {/* Status Badge */}
-      <div className="absolute right-4 top-4">
-        <div
-          className={cn(
-            'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium',
-            config.color
-          )}
-        >
-          <StatusIcon
-            className={cn('h-3 w-3', prdStatus === 'generating' && 'animate-spin')}
-          />
-          {config.label}
-        </div>
-      </div>
-
       {/* Content */}
       <div className="flex-1 space-y-3">
         {/* Title */}
-        <h3 className="pr-24 text-lg font-semibold text-white group-hover:text-cyan-100">
-          {featureTitle}
+        <h3
+          className="text-lg font-semibold text-white group-hover:text-cyan-100"
+          title={featureTitle}
+        >
+          {featureTitle.length > 25
+            ? `${featureTitle.slice(0, 25)}...`
+            : featureTitle}
         </h3>
 
         {/* Preview or Error Message */}
@@ -95,8 +84,26 @@ export function PrdCard({
         )}
 
         {prdStatus === 'generating' && (
-          <p className="text-sm text-cyan-400">Generating PRD content...</p>
+          <p className="text-sm text-cyan-400">Generating PRD...</p>
         )}
+
+        {/* Status Badge */}
+        <div className="flex items-center">
+          <div
+            className={cn(
+              'flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium',
+              config.color
+            )}
+          >
+            <StatusIcon
+              className={cn(
+                'h-3 w-3',
+                prdStatus === 'generating' && 'animate-spin'
+              )}
+            />
+            {config.label}
+          </div>
+        </div>
 
         {prdStatus === 'idle' && (
           <p className="text-sm text-slate-400">
@@ -109,7 +116,10 @@ export function PrdCard({
       {lastUpdated && prdStatus === 'ready' && (
         <div className="mt-4 flex items-center gap-1.5 border-t border-white/5 pt-3 text-xs text-slate-400">
           <Clock className="h-3 w-3" />
-          <span>Updated {formatDistanceToNow(new Date(lastUpdated), { addSuffix: true })}</span>
+          <span>
+            Updated{' '}
+            {formatDistanceToNow(new Date(lastUpdated), { addSuffix: true })}
+          </span>
         </div>
       )}
     </button>
