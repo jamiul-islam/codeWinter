@@ -3,7 +3,10 @@
 import { useEffect, useState, useCallback, use } from 'react'
 import type { Edge, Node } from 'reactflow'
 
-import { useProjectStore, type FeatureNodeState } from '@/lib/store/project-store'
+import {
+  useProjectStore,
+  type FeatureNodeState,
+} from '@/lib/store/project-store'
 import { PageLoader } from '@/components/loaders'
 import { GraphCanvas } from '@/components/graph'
 import { Button } from '@/components/ui/button'
@@ -61,7 +64,11 @@ const PANEL_CONFIG: Array<{
   },
 ]
 
-export default function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ProjectPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const { id } = use(params)
 
   const [loading, setLoading] = useState(true)
@@ -73,7 +80,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   const upsertNode = useProjectStore((state) => state.upsertNode)
   const resetEdges = useProjectStore((state) => state.resetEdges)
   const addEdgeToStore = useProjectStore((state) => state.addEdge)
-  const setCurrentProjectId = useProjectStore((state) => state.setCurrentProjectId)
+  const setCurrentProjectId = useProjectStore(
+    (state) => state.setCurrentProjectId
+  )
 
   const fetchProjectData = useCallback(async () => {
     setLoading(true)
@@ -84,7 +93,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       const data = (await res.json()) as ProjectResponse | ErrorResponse
 
       if (!res.ok || !('project' in data)) {
-        const message = 'error' in data && data.error ? data.error : 'Failed to fetch project'
+        const message =
+          'error' in data && data.error ? data.error : 'Failed to fetch project'
         setError(message)
         setLoading(false)
         return
@@ -116,7 +126,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
       setError('Failed to fetch project')
       setLoading(false)
     }
-  }, [id, resetStore, resetEdges, upsertNode, addEdgeToStore, setCurrentProjectId])
+  }, [
+    id,
+    resetStore,
+    resetEdges,
+    upsertNode,
+    addEdgeToStore,
+    setCurrentProjectId,
+  ])
 
   useEffect(() => {
     fetchProjectData()
@@ -134,13 +151,14 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     return (
       <main className="relative isolate flex min-h-screen w-full justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4 py-12 sm:px-6 lg:px-10">
         <div className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute left-12 top-24 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
-          <div className="absolute bottom-16 right-10 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl" />
+          <div className="absolute top-24 left-12 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
+          <div className="absolute right-10 bottom-16 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl" />
         </div>
         <div className="relative z-10 flex w-full max-w-lg flex-col items-center gap-5 rounded-3xl border border-rose-500/30 bg-rose-500/10 p-10 text-center shadow-inner shadow-rose-900/30">
           <p className="text-base font-medium text-rose-100">{error}</p>
           <p className="text-sm text-rose-100/80">
-            Something disrupted the project workspace. Try again in a moment to reload your canvas.
+            Something disrupted the project workspace. Try again in a moment to
+            reload your canvas.
           </p>
           <Button onClick={fetchProjectData} variant="secondary" size="sm">
             Retry
@@ -150,7 +168,8 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
     )
   }
 
-  const activeConfig = PANEL_CONFIG.find((panel) => panel.id === activePanel) ?? PANEL_CONFIG[0]
+  const activeConfig =
+    PANEL_CONFIG.find((panel) => panel.id === activePanel) ?? PANEL_CONFIG[0]
   const formattedUpdatedAt = project?.updated_at
     ? new Date(project.updated_at).toLocaleString(undefined, {
         month: 'short',
@@ -164,20 +183,24 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
   return (
     <main className="relative isolate flex min-h-screen w-full justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 px-4 py-12 sm:px-6 lg:px-10">
       <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute left-12 top-24 hidden h-72 w-72 rounded-full bg-cyan-500/15 blur-3xl md:block" />
-        <div className="absolute bottom-16 right-4 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl" />
+        <div className="absolute top-24 left-12 hidden h-72 w-72 rounded-full bg-cyan-500/15 blur-3xl md:block" />
+        <div className="absolute right-4 bottom-16 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl" />
       </div>
 
       <div className="relative z-10 flex w-full max-w-6xl flex-col gap-8 lg:flex-row">
         <aside className="hidden w-[260px] flex-shrink-0 flex-col gap-6 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-black/30 lg:flex">
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.35em] text-cyan-200/70">Project</p>
+            <p className="text-xs tracking-[0.35em] text-cyan-200/70 uppercase">
+              Project
+            </p>
             <h2 className="text-2xl font-semibold text-white">
               {project?.name ?? 'Project workspace'}
             </h2>
             <p className="text-xs text-slate-300">ID: {id}</p>
             {formattedUpdatedAt && (
-              <p className="text-xs text-slate-400/80">Last updated {formattedUpdatedAt}</p>
+              <p className="text-xs text-slate-400/80">
+                Last updated {formattedUpdatedAt}
+              </p>
             )}
           </div>
 
@@ -198,7 +221,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                 <p
                   className={cn(
                     'mt-1 text-xs',
-                    activePanel === panel.id ? 'text-cyan-100/90' : 'text-slate-300'
+                    activePanel === panel.id
+                      ? 'text-cyan-100/90'
+                      : 'text-slate-300'
                   )}
                 >
                   {panel.description}
@@ -212,13 +237,15 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-black/30">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.35em] text-cyan-200/70">
+                <p className="text-xs tracking-[0.35em] text-cyan-200/70 uppercase">
                   {activeConfig.label}
                 </p>
                 <h1 className="mt-2 text-3xl font-semibold text-white">
                   {project?.name ?? 'Project workspace'}
                 </h1>
-                <p className="mt-3 max-w-2xl text-sm text-slate-300">{activeConfig.copy}</p>
+                <p className="mt-3 max-w-2xl text-sm text-slate-300">
+                  {activeConfig.copy}
+                </p>
               </div>
               {formattedUpdatedAt && (
                 <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">
@@ -251,7 +278,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
               <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-black/30">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-xl font-semibold text-white">Graph canvas</h2>
+                    <h2 className="text-xl font-semibold text-white">
+                      Graph canvas
+                    </h2>
                     <p className="text-sm text-slate-300">
                       Update nodes and edges. Changes auto-save to this project.
                     </p>
@@ -283,14 +312,21 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-                  <path d="M13 4v6h6" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M13 4v6h6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                   <path d="M8 14h8M8 17h5" strokeLinecap="round" />
                 </svg>
               </div>
-              <h2 className="text-2xl font-semibold text-white">PRD drawer is coming soon</h2>
+              <h2 className="text-2xl font-semibold text-white">
+                PRD drawer is coming soon
+              </h2>
               <p className="mx-auto max-w-xl text-sm text-slate-300">
-                Once feature nodes have PRDs, they will gather here with export-ready formatting.
-                Keep refining the graph so each node has the right context for generation.
+                Once feature nodes have PRDs, they will gather here with
+                export-ready formatting. Keep refining the graph so each node
+                has the right context for generation.
               </p>
               <div className="mt-4 flex flex-wrap justify-center gap-3">
                 <Button size="sm" className="min-w-[160px]" disabled>
@@ -306,9 +342,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
           {activePanel === 'settings' && (
             <section className="space-y-6 rounded-3xl border border-white/10 bg-white/5 p-8 shadow-inner shadow-black/30">
               <div>
-                <h2 className="text-xl font-semibold text-white">Canvas preferences</h2>
+                <h2 className="text-xl font-semibold text-white">
+                  Canvas preferences
+                </h2>
                 <p className="mt-2 text-sm text-slate-300">
-                  Configure how interactions behave. We will wire these controls in the next phase.
+                  Configure how interactions behave. We will wire these controls
+                  in the next phase.
                 </p>
               </div>
 
@@ -332,8 +371,12 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                     className="flex flex-col justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-inner shadow-black/20 sm:flex-row sm:items-center"
                   >
                     <div>
-                      <h3 className="text-sm font-semibold text-white">{setting.title}</h3>
-                      <p className="mt-1 text-xs text-slate-300">{setting.desc}</p>
+                      <h3 className="text-sm font-semibold text-white">
+                        {setting.title}
+                      </h3>
+                      <p className="mt-1 text-xs text-slate-300">
+                        {setting.desc}
+                      </p>
                     </div>
                     <Button variant="secondary" size="sm" disabled>
                       Configure soon
@@ -347,8 +390,9 @@ export default function ProjectPage({ params }: { params: Promise<{ id: string }
                   Coming later in E4 &amp; E5
                 </h3>
                 <p className="mt-2 text-xs text-cyan-50/80">
-                  These controls will hook into project-level preferences so multi-tenant teams can
-                  keep consistent graph behaviors across contributors.
+                  These controls will hook into project-level preferences so
+                  multi-tenant teams can keep consistent graph behaviors across
+                  contributors.
                 </p>
               </div>
             </section>

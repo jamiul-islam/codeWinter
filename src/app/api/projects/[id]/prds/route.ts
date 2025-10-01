@@ -3,7 +3,7 @@ import { getServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const { id: projectId } = await context.params
 
@@ -13,7 +13,10 @@ export async function GET(
     // Ensure user is authenticated
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
 
     // Count PRDs linked to features in this project
@@ -28,7 +31,8 @@ export async function GET(
 
     return NextResponse.json({ count: count || 0 })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch PRD count'
+    const message =
+      error instanceof Error ? error.message : 'Failed to fetch PRD count'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

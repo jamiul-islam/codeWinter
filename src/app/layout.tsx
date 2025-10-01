@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { Geist, Geist_Mono, Space_Grotesk } from 'next/font/google'
+import { Toaster } from 'sonner'
 
 import { SupabaseProvider, AuthProvider } from '@/components/providers'
 
@@ -46,6 +47,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
             <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
               {children}
             </div>
+            <Toaster theme="dark" position="top-right" richColors closeButton />
           </AuthProvider>
         </SupabaseProvider>
       </body>

@@ -44,7 +44,10 @@ export const GraphCanvas: React.FC = () => {
           await fetch(`/api/projects/${currentProjectId}/graph`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nodes: nodesToPersist, edges: edgesToPersist }),
+            body: JSON.stringify({
+              nodes: nodesToPersist,
+              edges: edgesToPersist,
+            }),
           })
         } catch (err) {
           console.error('Failed to persist graph:', err)

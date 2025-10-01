@@ -1,6 +1,12 @@
 'use client'
 
-import { useForm, useFieldArray, type FieldArrayPath, type FieldValues } from 'react-hook-form'
+import { useEffect } from 'react'
+import {
+  useForm,
+  useFieldArray,
+  type FieldArrayPath,
+  type FieldValues,
+} from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
@@ -20,7 +26,12 @@ const projectSchema = z.object({
   name: z.string().min(3, 'Project name must be at least 3 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
   features: z
-    .array(z.string().min(3, 'Each feature must be at least 3 characters'))
+    .array(
+      z.object({
+        featureId: z.string().optional(),
+        title: z.string().min(3, 'Each feature must be at least 3 characters'),
+      })
+    )
     .min(5, 'At least 5 features are required')
     .max(10, 'No more than 10 features allowed'),
 })
@@ -28,29 +39,47 @@ const projectSchema = z.object({
 export interface ProjectFormData extends FieldValues {
   name: string
   description: string
-  features: string[]
+  features: Array<{
+    featureId?: string
+    title: string
+  }>
 }
 
 interface NewProjectDialogProps {
   isOpen: boolean
+  mode?: 'create' | 'edit'
   onClose: () => void
   onSubmit: (data: ProjectFormData) => void
+  initialData?: ProjectFormData
 }
 
 export default function NewProjectDialog({
   isOpen,
+  mode = 'create',
   onClose,
   onSubmit,
+  initialData,
 }: NewProjectDialogProps) {
   const {
     register,
     handleSubmit,
     control,
+    reset,
     formState: { errors },
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
-    defaultValues: { name: '', description: '', features: ['', '', '', '', ''] }, // start with 5 inputs
-    mode: 'onChange', // validate on change
+    defaultValues: {
+      name: '',
+      description: '',
+      features: [
+        { title: '' },
+        { title: '' },
+        { title: '' },
+        { title: '' },
+        { title: '' },
+      ],
+    },
+    mode: 'onChange',
   })
 
   const featuresFieldName: FieldArrayPath<ProjectFormData> = 'features'
@@ -60,6 +89,25 @@ export default function NewProjectDialog({
     name: featuresFieldName,
   })
 
+  // Reset form when initialData changes (for edit mode)
+  useEffect(() => {
+    if (initialData) {
+      reset(initialData)
+    } else {
+      reset({
+        name: '',
+        description: '',
+        features: [
+          { title: '' },
+          { title: '' },
+          { title: '' },
+          { title: '' },
+          { title: '' },
+        ],
+      })
+    }
+  }, [initialData, reset])
+
   const submitHandler = (data: ProjectFormData) => {
     onSubmit(data)
     onClose()
@@ -68,9 +116,13 @@ export default function NewProjectDialog({
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="w-full max-w-xl">
       <ModalHeader>
-        <ModalTitle>New Project</ModalTitle>
+        <ModalTitle>
+          {mode === 'edit' ? 'Edit Project' : 'New Project'}
+        </ModalTitle>
         <ModalDescription>
-          Fill in project details and list 5–10 key features
+          {mode === 'edit'
+            ? 'Update project details and features'
+            : 'Fill in project details and list 5–10 key features'}
         </ModalDescription>
       </ModalHeader>
 
@@ -90,12 +142,10 @@ export default function NewProjectDialog({
           <textarea
             id="description"
             {...register('description')}
-            className="h-28 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-cyan-300/80 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
+            className="h-28 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-cyan-300/80 focus:ring-2 focus:ring-cyan-300/60 focus:outline-none"
           />
           {errors.description && (
-            <p className="text-sm text-red-400">
-              {errors.description.message}
-            </p>
+            <p className="text-sm text-red-400">{errors.description.message}</p>
           )}
         </div>
 
@@ -106,14 +156,14 @@ export default function NewProjectDialog({
             {fields.map((field, index) => (
               <div key={field.id} className="flex gap-2">
                 <Input
-                  {...register(`features.${index}`)}
+                  {...register(`features.${index}.title`)}
                   placeholder={`Feature ${index + 1}`}
                 />
                 <Button
                   type="button"
                   variant="secondary"
                   onClick={() => remove(index)}
-                  disabled={fields.length <= 5} // enforce min count visually
+                  disabled={fields.length <= 5}
                 >
                   Remove
                 </Button>
@@ -124,7 +174,7 @@ export default function NewProjectDialog({
             <Button
               type="button"
               variant="secondary"
-              onClick={() => append('')}
+              onClick={() => append({ title: '' })}
               disabled={fields.length >= 10}
             >
               Add Feature
@@ -139,7 +189,9 @@ export default function NewProjectDialog({
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">Create Project</Button>
+          <Button type="submit">
+            {mode === 'edit' ? 'Update Project' : 'Create Project'}
+          </Button>
         </ModalFooter>
       </form>
     </Modal>

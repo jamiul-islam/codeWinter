@@ -4,6 +4,8 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { buttonClasses } from '@/components/ui/button-classes'
 import type { Session } from '@supabase/supabase-js'
+// CHANGED: Destructured useState and useEffect directly from React import
+import { useState, useEffect } from 'react'
 
 interface FinalCTAProps {
   session: Session | null
@@ -101,10 +103,12 @@ export function FinalCTA({ session }: FinalCTAProps) {
 
 // Simple counter component
 function CountUp() {
-  const [count, setCount] = React.useState(0)
+  // CHANGED: Using useState directly instead of React.useState
+  const [count, setCount] = useState(0)
   const targetCount = 1247 // Example number
 
-  React.useEffect(() => {
+  // CHANGED: Using useEffect directly instead of React.useEffect
+  useEffect(() => {
     let current = 0
     const increment = targetCount / 60 // Animate over ~1 second (60 frames)
     const timer = setInterval(() => {
@@ -122,6 +126,3 @@ function CountUp() {
 
   return <>{count.toLocaleString()}</>
 }
-
-// Add React import
-import React from 'react'

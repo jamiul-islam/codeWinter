@@ -40,8 +40,8 @@ export function Modal({ isOpen, onClose, children, className }: ModalProps) {
       <div
         ref={modalRef}
         className={cn(
-          'relative z-10 w-full max-w-md max-h-[85vh] overflow-y-auto rounded-2xl border border-white/10 bg-slate-900/90 p-6 shadow-xl shadow-black/40',
-          className,
+          'relative z-10 max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-slate-900/90 p-6 shadow-xl shadow-black/40',
+          className
         )}
       >
         {children}
@@ -67,13 +67,8 @@ export function ModalTitle({ children, className }: ModalSectionProps) {
   )
 }
 
-export function ModalDescription({
-  children,
-  className,
-}: ModalSectionProps) {
-  return (
-    <p className={cn('text-sm text-slate-300', className)}>{children}</p>
-  )
+export function ModalDescription({ children, className }: ModalSectionProps) {
+  return <p className={cn('text-sm text-slate-300', className)}>{children}</p>
 }
 
 export function ModalFooter({ children, className }: ModalSectionProps) {

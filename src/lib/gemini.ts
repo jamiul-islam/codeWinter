@@ -6,7 +6,7 @@ const IV_LENGTH = 16 // 128-bit IV
 // Encrypt the API key
 export function encryptApiKey(apiKey: string): string {
   try {
-    const encryptionKey = process.env.NEXT_PUBLIC_ENCRYPTION_KEY
+    const encryptionKey = process.env.ENCRYPTION_KEY
     if (!encryptionKey) throw new Error('Encryption key not found')
 
     const secretKey = Buffer.from(encryptionKey, 'hex')
@@ -25,9 +25,10 @@ export function encryptApiKey(apiKey: string): string {
     // Return iv:tag:encrypted as hex string
     return `${iv.toString('hex')}:${tag.toString('hex')}:${encrypted.toString('hex')}`
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to encrypt API key'
+    const message =
+      error instanceof Error ? error.message : 'Failed to encrypt API key'
     console.error('Failed to encrypt API key:', message)
-    throw (error instanceof Error ? error : new Error(message))
+    throw error instanceof Error ? error : new Error(message)
   }
 }
 
@@ -55,9 +56,10 @@ export function decryptApiKey(encryptedString: string): string {
     ])
     return decrypted.toString('utf8')
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to decrypt API key'
+    const message =
+      error instanceof Error ? error.message : 'Failed to decrypt API key'
     console.error('Failed to decrypt API key:', message)
-    throw (error instanceof Error ? error : new Error(message))
+    throw error instanceof Error ? error : new Error(message)
   }
 }
 
@@ -101,7 +103,9 @@ export async function verifyGeminiAPIKey(apiKey: string): Promise<boolean> {
   } catch (error) {
     // This catches network errors or other issues.
     const message = error instanceof Error ? error.message : 'Unknown error'
-    console.error(`An error occurred while validating Gemini API key: ${message}`)
+    console.error(
+      `An error occurred while validating Gemini API key: ${message}`
+    )
     return false
   }
 }

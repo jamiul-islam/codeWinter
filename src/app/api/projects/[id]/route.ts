@@ -3,7 +3,7 @@ import { getServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const { id: projectId } = await context.params
 
@@ -13,7 +13,10 @@ export async function GET(
     // Ensure user is authenticated
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
 
     // Fetch the project
@@ -24,12 +27,16 @@ export async function GET(
       .single()
 
     if (error || !project) {
-      return NextResponse.json({ error: error?.message || 'Project not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: error?.message || 'Project not found' },
+        { status: 404 }
+      )
     }
 
     return NextResponse.json({ project }) // wrap project in an object
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch project'
+    const message =
+      error instanceof Error ? error.message : 'Failed to fetch project'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

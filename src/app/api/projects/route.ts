@@ -22,7 +22,10 @@ export async function POST(req: NextRequest) {
     // Ensure user is authenticated
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
     const userId = userData.user.id
 
@@ -50,18 +53,27 @@ export async function POST(req: NextRequest) {
       project_id: project.id,
       title: feature,
     }))
-    const { error: featuresError } = await supabase.from('features').insert(featuresData)
+    const { error: featuresError } = await supabase
+      .from('features')
+      .insert(featuresData)
 
     if (featuresError) {
-      return NextResponse.json({ error: featuresError.message }, { status: 500 })
+      return NextResponse.json(
+        { error: featuresError.message },
+        { status: 500 }
+      )
     }
 
-    return NextResponse.json({ message: 'Project created successfully', project })
+    return NextResponse.json({
+      message: 'Project created successfully',
+      project,
+    })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 })
     }
-    const message = error instanceof Error ? error.message : 'Failed to create project'
+    const message =
+      error instanceof Error ? error.message : 'Failed to create project'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
@@ -74,7 +86,10 @@ export async function GET() {
     // Ensure user is authenticated
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
     const userId = userData.user.id
 
@@ -91,7 +106,8 @@ export async function GET() {
 
     return NextResponse.json({ projects })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch projects'
+    const message =
+      error instanceof Error ? error.message : 'Failed to fetch projects'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

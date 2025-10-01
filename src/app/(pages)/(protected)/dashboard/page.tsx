@@ -228,7 +228,13 @@
 
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -236,9 +242,16 @@ import { useAuth } from '@/components/providers'
 import { Button } from '@/components/ui/button'
 import { buttonClasses } from '@/components/ui/button-classes'
 import { PageLoader } from '@/components/loaders'
-import NewProjectDialog, {
+import ProjectDialog, {
   type ProjectFormData,
 } from '@/components/dashboard/NewProjectDialog'
+import {
+  Modal,
+  ModalDescription,
+  ModalFooter,
+  ModalHeader,
+  ModalTitle,
+} from '@/components/ui/modal'
 
 type Project = {
   id: string
@@ -255,6 +268,18 @@ type ProjectsResponse = {
   }>
 }
 
+type ProjectDetailsResponse = {
+  project: {
+    id: string
+    name: string
+    description: string
+  }
+  features: Array<{
+    id: string
+    title: string
+  }>
+}
+
 type ErrorResponse = {
   error?: string
 }
@@ -267,8 +292,17 @@ export default function DashboardPage() {
   const { user, signOut, isLoading } = useAuth()
   const [feedback, setFeedback] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create')
+  const [dialogInitialData, setDialogInitialData] = useState<
+    ProjectFormData | undefined
+  >(undefined)
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [loadingProjects, setLoadingProjects] = useState(false)
+  const [isDialogBusy, setIsDialogBusy] = useState(false)
+  const [projectPendingDelete, setProjectPendingDelete] =
+    useState<Project | null>(null)
+  const [isDeletingProject, setIsDeletingProject] = useState(false)
   const router = useRouter()
 
   const handleSignOut = async () => {
@@ -315,27 +349,131 @@ export default function DashboardPage() {
     }
   }, [user])
 
-  const handleNewProjectSubmit = async (data: ProjectFormData) => {
-    try {
-      const res = await fetch('/api/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
-      const result = (await res.json()) as { error?: string }
+  const openCreateDialog = () => {
+    setDialogMode('create')
+    setActiveProjectId(null)
+    setDialogInitialData(undefined)
+    setIsDialogOpen(true)
+  }
 
-      if (!res.ok) {
-        setFeedback(result.error || 'Failed to create project')
+  const handleEditProject = useCallback(async (projectId: string) => {
+    try {
+      setIsDialogBusy(true)
+      const res = await fetch(`/api/projects/${projectId}`)
+      const data = (await res.json()) as ProjectDetailsResponse | ErrorResponse
+
+      if (!res.ok || !('project' in data)) {
+        const message =
+          'error' in data && data.error
+            ? data.error
+            : 'Failed to load project details'
+        setFeedback(message)
         return
       }
 
-      setFeedback('Project created successfully!')
+      setDialogMode('edit')
+      setActiveProjectId(projectId)
+      setDialogInitialData({
+        name: data.project.name,
+        description: data.project.description,
+        features: (data.features ?? []).map((feature) => ({
+          featureId: feature.id,
+          title: feature.title,
+        })),
+      })
+      setIsDialogOpen(true)
+    } catch (error) {
+      console.error(error)
+      setFeedback('Unable to load project details for editing.')
+    } finally {
+      setIsDialogBusy(false)
+    }
+  }, [])
 
-      // Refresh projects list
-      fetchProjects()
-    } catch (err) {
-      console.error(err)
-      setFeedback('Something went wrong. Please try again.')
+  const handleProjectDialogSubmit = useCallback(
+    async (data: ProjectFormData) => {
+      if (dialogMode === 'edit') {
+        if (!activeProjectId) {
+          throw new Error('Missing project identifier for update')
+        }
+
+        const res = await fetch(`/api/projects/${activeProjectId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: data.name,
+            description: data.description,
+            features: data.features.map((feature) => ({
+              featureId: feature.featureId,
+              title: feature.title,
+            })),
+          }),
+        })
+        const result = (await res.json()) as ErrorResponse
+
+        if (!res.ok) {
+          throw new Error(result.error || 'Failed to update project')
+        }
+
+        setFeedback('Project updated successfully!')
+        setDialogInitialData(undefined)
+        setActiveProjectId(null)
+      } else {
+        const res = await fetch('/api/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: data.name,
+            description: data.description,
+            features: data.features.map((feature) => ({
+              title: feature.title,
+            })),
+          }),
+        })
+        const result = (await res.json()) as ErrorResponse
+
+        if (!res.ok) {
+          throw new Error(result.error || 'Failed to create project')
+        }
+
+        setFeedback('Project created successfully!')
+      }
+
+      await fetchProjects()
+    },
+    [dialogMode, activeProjectId, fetchProjects]
+  )
+
+  const closeProjectDialog = useCallback(() => {
+    setIsDialogOpen(false)
+    setDialogInitialData(undefined)
+    setActiveProjectId(null)
+    setDialogMode('create')
+  }, [])
+
+  const confirmDeleteProject = async () => {
+    if (!projectPendingDelete) return
+    setIsDeletingProject(true)
+    try {
+      const res = await fetch(`/api/projects/${projectPendingDelete.id}`, {
+        method: 'DELETE',
+      })
+      const result = (await res.json().catch(() => ({}))) as ErrorResponse
+
+      if (!res.ok) {
+        throw new Error(result.error || 'Failed to delete project')
+      }
+
+      setFeedback('Project deleted successfully.')
+      setProjectPendingDelete(null)
+      await fetchProjects()
+    } catch (error) {
+      console.error(error)
+      setFeedback(
+        error instanceof Error ? error.message : 'Unable to delete project'
+      )
+    } finally {
+      setIsDeletingProject(false)
     }
   }
 
@@ -423,7 +561,7 @@ export default function DashboardPage() {
             <Button
               size="lg"
               className="min-w-[180px]"
-              onClick={() => setIsDialogOpen(true)}
+              onClick={openCreateDialog}
             >
               New project
             </Button>
@@ -481,8 +619,29 @@ export default function DashboardPage() {
               <div
                 key={project.id}
                 onClick={() => router.push(`/project/${project.id}`)}
-                className="cursor-pointer rounded-2xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-black/30 transition hover:scale-[1.02] hover:bg-white/10"
+                className="group relative cursor-pointer rounded-2xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-black/30 transition hover:scale-[1.02] hover:bg-white/10"
               >
+                <div className="absolute top-4 right-4 flex gap-2 opacity-0 transition group-hover:opacity-100">
+                  <IconButton
+                    ariaLabel="Edit project"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      handleEditProject(project.id)
+                    }}
+                    disabled={isDialogBusy}
+                  >
+                    <PencilIcon />
+                  </IconButton>
+                  <IconButton
+                    ariaLabel="Delete project"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setProjectPendingDelete(project)
+                    }}
+                  >
+                    <TrashIcon />
+                  </IconButton>
+                </div>
                 <h3 className="text-lg font-semibold text-white">
                   {project.name}
                 </h3>
@@ -500,11 +659,116 @@ export default function DashboardPage() {
       </section>
 
       {/* New Project Dialog */}
-      <NewProjectDialog
+      <ProjectDialog
         isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        onSubmit={handleNewProjectSubmit}
+        mode={dialogMode}
+        onClose={closeProjectDialog}
+        onSubmit={handleProjectDialogSubmit}
+        initialData={dialogMode === 'edit' ? dialogInitialData : undefined}
       />
+
+      <Modal
+        isOpen={Boolean(projectPendingDelete)}
+        onClose={() => setProjectPendingDelete(null)}
+      >
+        <ModalHeader>
+          <ModalTitle>Delete project?</ModalTitle>
+          <ModalDescription>
+            This will remove{' '}
+            <span className="font-semibold text-white">
+              {projectPendingDelete?.name}
+            </span>{' '}
+            and all related features, graphs, and PRDs.
+          </ModalDescription>
+        </ModalHeader>
+
+        <p className="text-sm text-slate-300">
+          This action cannot be undone. Make sure you have exported any required
+          PRDs before deleting.
+        </p>
+
+        <ModalFooter>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setProjectPendingDelete(null)}
+            disabled={isDeletingProject}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            className="bg-rose-500 text-white shadow shadow-rose-500/30 hover:bg-rose-400"
+            onClick={confirmDeleteProject}
+            disabled={isDeletingProject}
+          >
+            {isDeletingProject ? 'Deleting...' : 'Delete project'}
+          </Button>
+        </ModalFooter>
+      </Modal>
     </main>
+  )
+}
+
+function IconButton({
+  children,
+  onClick,
+  disabled,
+  ariaLabel,
+}: {
+  children: ReactNode
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void
+  disabled?: boolean
+  ariaLabel: string
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      onClick={onClick}
+      disabled={disabled}
+      className="flex size-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-200 transition hover:border-cyan-300/50 hover:bg-cyan-400/10 hover:text-cyan-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {children}
+    </button>
+  )
+}
+
+function PencilIcon() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 20 20"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+    >
+      <path d="M3 14.5v2.5h2.5l9-9-2.5-2.5-9 9Z" strokeLinejoin="round" />
+      <path d="M12.5 5 15 7.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function TrashIcon() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 20 20"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+    >
+      <path d="M4 6h12" strokeLinecap="round" />
+      <path
+        d="M8.5 6.5v-2a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6.5 6h7l-.5 9a1 1 0 0 1-1 .92h-3.5a1 1 0 0 1-1-.92L6.5 6Z"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
