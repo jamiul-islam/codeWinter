@@ -82,38 +82,52 @@ npm run format:check # Prettier check (CI / pre-commit)
 
 ```mermaid
 flowchart TB
-  subgraph Client[Client (Browser)]
-    UI[Next.js App Router UI]
-    GraphUI[React Flow Graph + Zustand]
-  end
+    subgraph Client ["Client (Browser)"]
+        UI["Next.js App Router UI"]
+        GraphUI["React Flow Graph + Zustand"]
+    end
 
-  subgraph App[Next.js Server (API routes, SSR)]
-    MW[Middleware: Supabase session cookies]
-    API[/REST APIs: /api/projects, /api/prd/*, /api/features/*/]
-    PRDSvc[PRD Service (lib/gemini/server.ts)]
-    GraphSvc[Graph Service (lib/graph/generate.ts)]
-  end
+    subgraph App ["Next.js Server (API routes, SSR)"]
+        MW["Middleware: Supabase session cookies"]
+        API["REST APIs: /api/projects, /api/prd/*, /api/features/*"]
+        PRDSvc["PRD Service (lib/gemini/server.ts)"]
+        GraphSvc["Graph Service (lib/graph/generate.ts)"]
+    end
 
-  subgraph SB[Supabase]
-    Auth[Auth]
-    DB[(Postgres\nprojects, features, feature_edges,\nfeature_prds, feature_prd_versions,\nuser_settings, audit_logs)]
-    RLS[Row Level Security + Triggers]
-  end
+    subgraph SB ["Supabase"]
+        Auth["Auth"]
+        DB[("Postgres<br/>projects, features, feature_edges,<br/>feature_prds, feature_prd_versions,<br/>user_settings, audit_logs")]
+        RLS["Row Level Security + Triggers"]
+    end
 
-  Gemini[Google Gemini API]
+    Gemini["Google Gemini API"]
 
-  UI --> MW
-  GraphUI --> API
-  MW <--> Auth
-  API --> DB
-  API -.policy.-> RLS
-  API --> PRDSvc
-  API --> GraphSvc
-  PRDSvc -->|contexted prompts| Gemini
-  PRDSvc --> DB
-  GraphSvc --> DB
-  API -->|audit events| DB
-  UI <-->|session cookies| MW
+    UI --> MW
+    GraphUI --> API
+    MW <--> Auth
+    API --> DB
+    API -.policy.-> RLS
+    API --> PRDSvc
+    API --> GraphSvc
+    PRDSvc -->|contexted prompts| Gemini
+    PRDSvc --> DB
+    GraphSvc --> DB
+    API -->|audit events| DB
+    UI <-->|session cookies| MW
+
+    %% Apply custom styling
+    classDef clientNodes fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    classDef serverNodes fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef supabaseNodes fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef externalNodes fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef databaseNodes fill:#e0f2f1,stroke:#00695c,stroke-width:3px,color:#000
+
+    %% Apply classes to nodes
+    class UI,GraphUI clientNodes
+    class MW,API,PRDSvc,GraphSvc serverNodes
+    class Auth,RLS supabaseNodes
+    class DB databaseNodes
+    class Gemini externalNodes
 ```
 
 - SSR uses Supabase session cookies for authenticated API access.
