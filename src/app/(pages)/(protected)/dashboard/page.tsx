@@ -226,7 +226,6 @@
 //   )
 // }
 
-
 'use client'
 
 import {
@@ -242,7 +241,8 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/providers'
 import { Button } from '@/components/ui/button'
 import { buttonClasses } from '@/components/ui/button-classes'
-import { PageLoader } from '@/components/loaders'
+import { PageLoader } from '@/components/loaders/PageLoader'
+import ProjectsLoader from '@/components/loaders/ProjectsLoader'
 import ProjectDialog, {
   type ProjectFormData,
 } from '@/components/dashboard/NewProjectDialog'
@@ -265,6 +265,7 @@ type ProjectsResponse = {
   projects: Array<{
     id: string
     name: string
+    prdCount: number
     updated_at: string
   }>
 }
@@ -294,12 +295,15 @@ export default function DashboardPage() {
   const [feedback, setFeedback] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create')
-  const [dialogInitialData, setDialogInitialData] = useState<ProjectFormData | undefined>(undefined)
+  const [dialogInitialData, setDialogInitialData] = useState<
+    ProjectFormData | undefined
+  >(undefined)
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [loadingProjects, setLoadingProjects] = useState(false)
   const [isDialogBusy, setIsDialogBusy] = useState(false)
-  const [projectPendingDelete, setProjectPendingDelete] = useState<Project | null>(null)
+  const [projectPendingDelete, setProjectPendingDelete] =
+    useState<Project | null>(null)
   const [isDeletingProject, setIsDeletingProject] = useState(false)
   const router = useRouter()
 
@@ -312,6 +316,41 @@ export default function DashboardPage() {
     router.push('/')
   }
 
+  // const fetchProjects = useCallback(async () => {
+  //   if (!user) return
+  //   setLoadingProjects(true)
+  //   try {
+  //     const res = await fetch('/api/projects')
+  //     const data = (await res.json()) as ProjectsResponse | ErrorResponse
+
+  //     if (res.ok && 'projects' in data && Array.isArray(data.projects)) {
+  //       const projectsWithPRD = await Promise.all(
+  //         data.projects.map(async (project) => {
+  //           const prdRes = await fetch(`/api/projects/${project.id}/prds`)
+  //           const prdData = (await prdRes.json()) as
+  //             | PrdCountResponse
+  //             | ErrorResponse
+  //           return {
+  //             ...project,
+  //             prdCount:
+  //               prdRes.ok && 'count' in prdData ? (prdData.count ?? 0) : 0,
+  //           }
+  //         })
+  //       )
+  //       setProjects(projectsWithPRD)
+  //     } else {
+  //       const message =
+  //         'error' in data && data.error ? data.error : 'Failed to load projects'
+  //       setFeedback(message)
+  //     }
+  //   } catch (err) {
+  //     console.error(err)
+  //     setFeedback('Unable to load projects')
+  //   } finally {
+  //     setLoadingProjects(false)
+  //   }
+  // }, [user])
+
   const fetchProjects = useCallback(async () => {
     if (!user) return
     setLoadingProjects(true)
@@ -320,19 +359,10 @@ export default function DashboardPage() {
       const data = (await res.json()) as ProjectsResponse | ErrorResponse
 
       if (res.ok && 'projects' in data && Array.isArray(data.projects)) {
-        const projectsWithPRD = await Promise.all(
-          data.projects.map(async (project) => {
-            const prdRes = await fetch(`/api/projects/${project.id}/prds`)
-            const prdData = (await prdRes.json()) as PrdCountResponse | ErrorResponse
-            return {
-              ...project,
-              prdCount: prdRes.ok && 'count' in prdData ? prdData.count ?? 0 : 0,
-            }
-          }),
-        )
-        setProjects(projectsWithPRD)
+        setProjects(data.projects)
       } else {
-        const message = 'error' in data && data.error ? data.error : 'Failed to load projects'
+        const message =
+          'error' in data && data.error ? data.error : 'Failed to load projects'
         setFeedback(message)
       }
     } catch (err) {
@@ -350,39 +380,39 @@ export default function DashboardPage() {
     setIsDialogOpen(true)
   }
 
-  const handleEditProject = useCallback(
-    async (projectId: string) => {
-      try {
-        setIsDialogBusy(true)
-        const res = await fetch(`/api/projects/${projectId}`)
-        const data = (await res.json()) as ProjectDetailsResponse | ErrorResponse
+  const handleEditProject = useCallback(async (projectId: string) => {
+    try {
+      setIsDialogBusy(true)
+      const res = await fetch(`/api/projects/${projectId}`)
+      const data = (await res.json()) as ProjectDetailsResponse | ErrorResponse
 
-        if (!res.ok || !('project' in data)) {
-          const message = 'error' in data && data.error ? data.error : 'Failed to load project details'
-          setFeedback(message)
-          return
-        }
-
-        setDialogMode('edit')
-        setActiveProjectId(projectId)
-        setDialogInitialData({
-          name: data.project.name,
-          description: data.project.description,
-          features: (data.features ?? []).map((feature) => ({
-            featureId: feature.id,
-            title: feature.title,
-          })),
-        })
-        setIsDialogOpen(true)
-      } catch (error) {
-        console.error(error)
-        setFeedback('Unable to load project details for editing.')
-      } finally {
-        setIsDialogBusy(false)
+      if (!res.ok || !('project' in data)) {
+        const message =
+          'error' in data && data.error
+            ? data.error
+            : 'Failed to load project details'
+        setFeedback(message)
+        return
       }
-    },
-    [],
-  )
+
+      setDialogMode('edit')
+      setActiveProjectId(projectId)
+      setDialogInitialData({
+        name: data.project.name,
+        description: data.project.description,
+        features: (data.features ?? []).map((feature) => ({
+          featureId: feature.id,
+          title: feature.title,
+        })),
+      })
+      setIsDialogOpen(true)
+    } catch (error) {
+      console.error(error)
+      setFeedback('Unable to load project details for editing.')
+    } finally {
+      setIsDialogBusy(false)
+    }
+  }, [])
 
   const handleProjectDialogSubmit = useCallback(
     async (data: ProjectFormData) => {
@@ -419,7 +449,9 @@ export default function DashboardPage() {
           body: JSON.stringify({
             name: data.name,
             description: data.description,
-            features: data.features.map((feature) => ({ title: feature.title })),
+            features: data.features.map((feature) => ({
+              title: feature.title,
+            })),
           }),
         })
         const result = (await res.json()) as ErrorResponse
@@ -433,7 +465,7 @@ export default function DashboardPage() {
 
       await fetchProjects()
     },
-    [dialogMode, activeProjectId, fetchProjects],
+    [dialogMode, activeProjectId, fetchProjects]
   )
 
   const closeProjectDialog = useCallback(() => {
@@ -461,7 +493,9 @@ export default function DashboardPage() {
       await fetchProjects()
     } catch (error) {
       console.error(error)
-      setFeedback(error instanceof Error ? error.message : 'Unable to delete project')
+      setFeedback(
+        error instanceof Error ? error.message : 'Unable to delete project'
+      )
     } finally {
       setIsDeletingProject(false)
     }
@@ -482,20 +516,24 @@ export default function DashboardPage() {
     <main className="relative isolate mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-10 px-6 py-16">
       {/* Background divs */}
       <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950" />
-      <div className="pointer-events-none absolute left-10 top-24 -z-10 hidden h-64 w-64 rounded-full bg-cyan-500/15 blur-3xl md:block" />
-      <div className="pointer-events-none absolute bottom-10 right-0 -z-10 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl" />
+      <div className="pointer-events-none absolute top-24 left-10 -z-10 hidden h-64 w-64 rounded-full bg-cyan-500/15 blur-3xl md:block" />
+      <div className="pointer-events-none absolute right-0 bottom-10 -z-10 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl" />
 
       {/* Header */}
       <header
         className={`${cardClass} flex flex-col gap-6 p-8 sm:flex-row sm:items-end sm:justify-between`}
       >
         <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.35em] text-cyan-200/70">Overview</p>
+          <p className="text-xs tracking-[0.35em] text-cyan-200/70 uppercase">
+            Overview
+          </p>
           <div>
-            <h1 className="text-3xl font-semibold text-white">Welcome back, {friendlyName}</h1>
+            <h1 className="text-3xl font-semibold text-white">
+              Welcome back, {friendlyName}
+            </h1>
             <p className="mt-2 max-w-xl text-sm text-slate-300">
-              Capture your ideas, draft feature graphs, and publish calming PRDs without leaving this
-              focused space.
+              Capture your ideas, draft feature graphs, and publish calming PRDs
+              without leaving this focused space.
             </p>
           </div>
         </div>
@@ -513,7 +551,9 @@ export default function DashboardPage() {
       </header>
 
       {feedback && (
-        <div className={`${cardClass} border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100`}>
+        <div
+          className={`${cardClass} border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100`}
+        >
           {feedback}
         </div>
       )}
@@ -534,13 +574,19 @@ export default function DashboardPage() {
               <path d="M12 5v14M5 12h14" strokeLinecap="round" />
             </svg>
           </div>
-          <h2 className="mt-6 text-2xl font-semibold text-white">Your workspace is ready</h2>
+          <h2 className="mt-6 text-2xl font-semibold text-white">
+            Your workspace is ready
+          </h2>
           <p className="mt-3 max-w-xl text-sm text-slate-300">
-            Start by creating a project, then sketch the relationships in the graph canvas to keep
-            your PRDs consistent.
+            Start by creating a project, then sketch the relationships in the
+            graph canvas to keep your PRDs consistent.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3 lg:flex-row lg:justify-start">
-            <Button size="lg" className="min-w-[180px]" onClick={openCreateDialog}>
+            <Button
+              size="lg"
+              className="min-w-[180px]"
+              onClick={openCreateDialog}
+            >
               New project
             </Button>
             <button
@@ -556,8 +602,8 @@ export default function DashboardPage() {
         <div className={`${cardClass} p-10`}>
           <h2 className="text-xl font-semibold text-white">Next steps</h2>
           <p className="mt-3 text-sm text-slate-300">
-            Invite collaborators, connect Supabase tables, and keep your Gemini key handy in settings
-            to unlock the agent features.
+            Invite collaborators, connect Supabase tables, and keep your Gemini
+            key handy in settings to unlock the agent features.
           </p>
           <ul className="mt-6 space-y-3 text-sm text-slate-200">
             <li className="flex items-center gap-3">
@@ -586,9 +632,11 @@ export default function DashboardPage() {
       <section className="mt-6">
         <h2 className="mb-4 text-xl font-semibold text-white">Your Projects</h2>
         {loadingProjects ? (
-          <PageLoader />
+          <ProjectsLoader />
         ) : projects.length === 0 ? (
-          <p className="text-sm text-slate-300">No projects yet. Create one to get started!</p>
+          <p className="text-sm text-slate-300">
+            No projects yet. Create one to get started!
+          </p>
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
@@ -597,7 +645,7 @@ export default function DashboardPage() {
                 onClick={() => router.push(`/project/${project.id}`)}
                 className="group relative cursor-pointer rounded-2xl border border-white/10 bg-white/5 p-6 shadow-inner shadow-black/30 transition hover:scale-[1.02] hover:bg-white/10"
               >
-                <div className="absolute right-4 top-4 flex gap-2 opacity-0 transition group-hover:opacity-100">
+                <div className="absolute top-4 right-4 flex gap-2 opacity-0 transition group-hover:opacity-100">
                   <IconButton
                     ariaLabel="Edit project"
                     onClick={(event) => {
@@ -618,11 +666,16 @@ export default function DashboardPage() {
                     <TrashIcon />
                   </IconButton>
                 </div>
-                <h3 className="text-lg font-semibold text-white">{project.name}</h3>
+                <h3 className="text-lg font-semibold text-white">
+                  {project.name}
+                </h3>
                 <p className="mt-2 text-sm text-slate-300">
-                  Last updated: {new Date(project.updated_at).toLocaleDateString()}
+                  Last updated:{' '}
+                  {new Date(project.updated_at).toLocaleDateString()}
                 </p>
-                <p className="mt-1 text-sm text-cyan-200">{project.prdCount} PRDs ready</p>
+                <p className="mt-1 text-sm text-cyan-200">
+                  {project.prdCount} PRDs ready
+                </p>
               </div>
             ))}
           </div>
@@ -638,16 +691,24 @@ export default function DashboardPage() {
         initialData={dialogMode === 'edit' ? dialogInitialData : undefined}
       />
 
-      <Modal isOpen={Boolean(projectPendingDelete)} onClose={() => setProjectPendingDelete(null)}>
+      <Modal
+        isOpen={Boolean(projectPendingDelete)}
+        onClose={() => setProjectPendingDelete(null)}
+      >
         <ModalHeader>
           <ModalTitle>Delete project?</ModalTitle>
           <ModalDescription>
-            This will remove <span className="font-semibold text-white">{projectPendingDelete?.name}</span> and all related features, graphs, and PRDs.
+            This will remove{' '}
+            <span className="font-semibold text-white">
+              {projectPendingDelete?.name}
+            </span>{' '}
+            and all related features, graphs, and PRDs.
           </ModalDescription>
         </ModalHeader>
 
         <p className="text-sm text-slate-300">
-          This action cannot be undone. Make sure you have exported any required PRDs before deleting.
+          This action cannot be undone. Make sure you have exported any required
+          PRDs before deleting.
         </p>
 
         <ModalFooter>
@@ -724,8 +785,14 @@ function TrashIcon() {
       strokeWidth={1.5}
     >
       <path d="M4 6h12" strokeLinecap="round" />
-      <path d="M8.5 6.5v-2a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v2" strokeLinecap="round" />
-      <path d="M6.5 6h7l-.5 9a1 1 0 0 1-1 .92h-3.5a1 1 0 0 1-1-.92L6.5 6Z" strokeLinejoin="round" />
+      <path
+        d="M8.5 6.5v-2a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6.5 6h7l-.5 9a1 1 0 0 1-1 .92h-3.5a1 1 0 0 1-1-.92L6.5 6Z"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
