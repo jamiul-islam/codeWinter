@@ -286,10 +286,6 @@ type ErrorResponse = {
   error?: string
 }
 
-type PrdCountResponse = {
-  count?: number
-}
-
 export default function DashboardPage() {
   const { user, signOut, isLoading } = useAuth()
   const [feedback, setFeedback] = useState<string | null>(null)
