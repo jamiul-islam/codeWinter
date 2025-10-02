@@ -11,9 +11,7 @@ const featureInputSchema = z.object({
 
 const projectUpdateSchema = z.object({
   name: z.string().min(3, 'Project name must be at least 3 characters'),
-  description: z
-    .string()
-    .min(10, 'Description must be at least 10 characters'),
+  description: z.string().min(10, 'Description must be at least 10 characters'),
   features: z
     .array(featureInputSchema)
     .min(5, 'At least 5 features are required')
@@ -22,7 +20,7 @@ const projectUpdateSchema = z.object({
 
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const { id: projectId } = await context.params
 
@@ -32,7 +30,10 @@ export async function GET(
     // Ensure user is authenticated
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
 
     const { data: project, error } = await supabase
@@ -42,7 +43,10 @@ export async function GET(
       .single()
 
     if (error || !project) {
-      return NextResponse.json({ error: error?.message || 'Project not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: error?.message || 'Project not found' },
+        { status: 404 }
+      )
     }
 
     const { data: features, error: featuresError } = await supabase
@@ -51,7 +55,10 @@ export async function GET(
       .eq('project_id', projectId)
 
     if (featuresError) {
-      return NextResponse.json({ error: featuresError.message }, { status: 500 })
+      return NextResponse.json(
+        { error: featuresError.message },
+        { status: 500 }
+      )
     }
 
     const { data: featureEdges, error: edgesError } = await supabase
@@ -63,16 +70,21 @@ export async function GET(
       return NextResponse.json({ error: edgesError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ project, features: features ?? [], edges: featureEdges ?? [] })
+    return NextResponse.json({
+      project,
+      features: features ?? [],
+      edges: featureEdges ?? [],
+    })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch project'
+    const message =
+      error instanceof Error ? error.message : 'Failed to fetch project'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const { id: projectId } = await context.params
 
@@ -84,7 +96,10 @@ export async function PATCH(
     const { data: userData } = await supabase.auth.getUser()
 
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
 
     const { data: project, error: projectError } = await supabase
@@ -98,19 +113,28 @@ export async function PATCH(
       .single()
 
     if (projectError || !project) {
-      return NextResponse.json({ error: projectError?.message || 'Project not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: projectError?.message || 'Project not found' },
+        { status: 404 }
+      )
     }
 
-    const { data: existingFeatures, error: existingFeaturesError } = await supabase
-      .from('features')
-      .select('id, title')
-      .eq('project_id', projectId)
+    const { data: existingFeatures, error: existingFeaturesError } =
+      await supabase
+        .from('features')
+        .select('id, title')
+        .eq('project_id', projectId)
 
     if (existingFeaturesError) {
-      return NextResponse.json({ error: existingFeaturesError.message }, { status: 500 })
+      return NextResponse.json(
+        { error: existingFeaturesError.message },
+        { status: 500 }
+      )
     }
 
-    const existingMap = new Map(existingFeatures?.map((feature) => [feature.id, feature]))
+    const existingMap = new Map(
+      existingFeatures?.map((feature) => [feature.id, feature])
+    )
     const seenIds = new Set<string>()
 
     const updates: Array<{ id: string; title: string }> = []
@@ -129,9 +153,10 @@ export async function PATCH(
       }
     })
 
-    const deletions = existingFeatures
-      ?.filter((feature) => !seenIds.has(feature.id))
-      .map((feature) => feature.id) ?? []
+    const deletions =
+      existingFeatures
+        ?.filter((feature) => !seenIds.has(feature.id))
+        .map((feature) => feature.id) ?? []
 
     if (updates.length) {
       for (const update of updates) {
@@ -162,13 +187,17 @@ export async function PATCH(
       }
     }
 
-    const { data: updatedFeatures, error: refreshedFeaturesError } = await supabase
-      .from('features')
-      .select('*')
-      .eq('project_id', projectId)
+    const { data: updatedFeatures, error: refreshedFeaturesError } =
+      await supabase.from('features').select('*').eq('project_id', projectId)
 
     if (refreshedFeaturesError || !updatedFeatures) {
-      return NextResponse.json({ error: refreshedFeaturesError?.message || 'Failed to refresh features' }, { status: 500 })
+      return NextResponse.json(
+        {
+          error:
+            refreshedFeaturesError?.message || 'Failed to refresh features',
+        },
+        { status: 500 }
+      )
     }
 
     await generateAndPersistProjectGraph({
@@ -186,14 +215,15 @@ export async function PATCH(
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 })
     }
-    const message = error instanceof Error ? error.message : 'Failed to update project'
+    const message =
+      error instanceof Error ? error.message : 'Failed to update project'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
 export async function DELETE(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const { id: projectId } = await context.params
 
@@ -202,7 +232,10 @@ export async function DELETE(
 
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
 
     const { error } = await supabase
@@ -216,7 +249,8 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to delete project'
+    const message =
+      error instanceof Error ? error.message : 'Failed to delete project'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

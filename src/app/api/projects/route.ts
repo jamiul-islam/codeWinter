@@ -28,7 +28,10 @@ export async function POST(req: NextRequest) {
     // Ensure user is authenticated
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
     const userId = userData.user.id
 
@@ -62,7 +65,10 @@ export async function POST(req: NextRequest) {
       .select()
 
     if (featuresError || !insertedFeatures) {
-      return NextResponse.json({ error: featuresError?.message || 'Failed to create features' }, { status: 500 })
+      return NextResponse.json(
+        { error: featuresError?.message || 'Failed to create features' },
+        { status: 500 }
+      )
     }
 
     const { graph } = await generateAndPersistProjectGraph({
@@ -80,7 +86,8 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 })
     }
-    const message = error instanceof Error ? error.message : 'Failed to create project'
+    const message =
+      error instanceof Error ? error.message : 'Failed to create project'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
@@ -93,7 +100,10 @@ export async function GET() {
     // Ensure user is authenticated
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
     const userId = userData.user.id
 
@@ -110,7 +120,8 @@ export async function GET() {
 
     return NextResponse.json({ projects })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch projects'
+    const message =
+      error instanceof Error ? error.message : 'Failed to fetch projects'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

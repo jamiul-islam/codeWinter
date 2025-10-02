@@ -10,7 +10,7 @@ const renameSchema = z.object({ title: featureTitleSchema })
 
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const { id: featureId } = await context.params
 
@@ -22,7 +22,10 @@ export async function PATCH(
     const { data: userData } = await supabase.auth.getUser()
 
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
 
     const { data: feature, error: featureError } = await supabase
@@ -32,7 +35,10 @@ export async function PATCH(
       .single()
 
     if (featureError || !feature) {
-      return NextResponse.json({ error: featureError?.message || 'Feature not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: featureError?.message || 'Feature not found' },
+        { status: 404 }
+      )
     }
 
     const { data: updatedFeature, error: updateError } = await supabase
@@ -43,10 +49,18 @@ export async function PATCH(
       .single()
 
     if (updateError || !updatedFeature) {
-      return NextResponse.json({ error: updateError?.message || 'Unable to update feature' }, { status: 400 })
+      return NextResponse.json(
+        { error: updateError?.message || 'Unable to update feature' },
+        { status: 400 }
+      )
     }
 
-    await updateProjectGraphTitle(supabase, feature.project_id, featureId, body.title)
+    await updateProjectGraphTitle(
+      supabase,
+      feature.project_id,
+      featureId,
+      body.title
+    )
 
     await supabase.from('audit_logs').insert({
       user_id: userData.user.id,
@@ -65,14 +79,15 @@ export async function PATCH(
       return NextResponse.json({ error: error.issues }, { status: 400 })
     }
 
-    const message = error instanceof Error ? error.message : 'Failed to rename feature'
+    const message =
+      error instanceof Error ? error.message : 'Failed to rename feature'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
 export async function DELETE(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const { id: featureId } = await context.params
 
@@ -81,7 +96,10 @@ export async function DELETE(
 
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
 
     const { data: feature, error: featureError } = await supabase
@@ -91,7 +109,10 @@ export async function DELETE(
       .single()
 
     if (featureError || !feature) {
-      return NextResponse.json({ error: featureError?.message || 'Feature not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: featureError?.message || 'Feature not found' },
+        { status: 404 }
+      )
     }
 
     const { error: deleteError } = await supabase
@@ -103,7 +124,11 @@ export async function DELETE(
       return NextResponse.json({ error: deleteError.message }, { status: 400 })
     }
 
-    await pruneProjectGraphAfterDeletion(supabase, feature.project_id, featureId)
+    await pruneProjectGraphAfterDeletion(
+      supabase,
+      feature.project_id,
+      featureId
+    )
 
     await supabase.from('audit_logs').insert({
       user_id: userData.user.id,
@@ -115,7 +140,8 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to delete feature'
+    const message =
+      error instanceof Error ? error.message : 'Failed to delete feature'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
@@ -124,7 +150,7 @@ async function updateProjectGraphTitle(
   supabase: Awaited<ReturnType<typeof getServerSupabaseClient>>,
   projectId: string,
   featureId: string,
-  title: string,
+  title: string
 ) {
   const { data: project, error } = await supabase
     .from('projects')
@@ -162,7 +188,7 @@ async function updateProjectGraphTitle(
 async function pruneProjectGraphAfterDeletion(
   supabase: Awaited<ReturnType<typeof getServerSupabaseClient>>,
   projectId: string,
-  featureId: string,
+  featureId: string
 ) {
   const { data: project, error } = await supabase
     .from('projects')
@@ -188,10 +214,13 @@ async function pruneProjectGraphAfterDeletion(
 
   const adjustedNodes = filteredNodes.map((node) => {
     if ((node.data?.kind as string | undefined) !== 'feature-hub') return node
-    const existingCount = Number((node.data as Record<string, unknown> | undefined)?.featureCount ?? 0)
+    const existingCount = Number(
+      (node.data as Record<string, unknown> | undefined)?.featureCount ?? 0
+    )
     const nextData = {
       ...(node.data ?? {}),
-      featureCount: typeof count === 'number' ? count : Math.max(0, existingCount - 1),
+      featureCount:
+        typeof count === 'number' ? count : Math.max(0, existingCount - 1),
     }
     return { ...node, data: nextData }
   })

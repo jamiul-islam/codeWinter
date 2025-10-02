@@ -27,27 +27,28 @@ export interface ProjectFormData {
 // Manual validation function
 const validateProjectForm = (data: ProjectFormData): Record<string, string> => {
   const errors: Record<string, string> = {}
-  
+
   if (!data.name || data.name.trim().length < 3) {
     errors.name = 'Project name must be at least 3 characters'
   }
-  
+
   if (!data.description || data.description.trim().length < 10) {
     errors.description = 'Description must be at least 10 characters'
   }
-  
+
   if (!data.features || data.features.length < 5) {
     errors.features = 'At least 5 features are required'
   } else if (data.features.length > 10) {
     errors.features = 'No more than 10 features allowed'
   }
-  
+
   data.features.forEach((feature, index) => {
     if (!feature.title || feature.title.trim().length < 3) {
-      errors[`features.${index}.title`] = 'Each feature must be at least 3 characters'
+      errors[`features.${index}.title`] =
+        'Each feature must be at least 3 characters'
     }
   })
-  
+
   return errors
 }
 
@@ -64,10 +65,12 @@ const MIN_FEATURE_COUNT = 5
 const emptyFeature = () => ({ title: '' })
 
 function normalizeFeatures(
-  features?: ProjectFormData['features'],
+  features?: ProjectFormData['features']
 ): ProjectFormData['features'] {
   const sanitized = (features ?? [])
-    .filter((feature): feature is NonNullable<typeof feature> => Boolean(feature))
+    .filter((feature): feature is NonNullable<typeof feature> =>
+      Boolean(feature)
+    )
     .map((feature) => ({
       ...(feature.featureId ? { featureId: feature.featureId } : {}),
       title: feature.title ?? '',
@@ -77,7 +80,10 @@ function normalizeFeatures(
 
   return [
     ...sanitized,
-    ...Array.from({ length: MIN_FEATURE_COUNT - sanitized.length }, emptyFeature),
+    ...Array.from(
+      { length: MIN_FEATURE_COUNT - sanitized.length },
+      emptyFeature
+    ),
   ]
 }
 
@@ -96,17 +102,14 @@ export default function ProjectDialog({
       description: '',
       features: normalizeFeatures(),
     }),
-    [],
+    []
   )
 
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({})
 
-  const {
-    register,
-    handleSubmit,
-    control,
-    reset,
-  } = useForm<ProjectFormData>({
+  const { register, handleSubmit, control, reset } = useForm<ProjectFormData>({
     defaultValues,
     mode: 'onChange',
   })
@@ -157,7 +160,9 @@ export default function ProjectDialog({
       onClose()
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Unable to save project right now.'
+        error instanceof Error
+          ? error.message
+          : 'Unable to save project right now.'
       setFormError(message)
     }
   }
@@ -165,7 +170,9 @@ export default function ProjectDialog({
   return (
     <Modal isOpen={isOpen} onClose={onClose} className="w-full max-w-xl">
       <ModalHeader>
-        <ModalTitle>{mode === 'edit' ? 'Edit Project' : 'New Project'}</ModalTitle>
+        <ModalTitle>
+          {mode === 'edit' ? 'Edit Project' : 'New Project'}
+        </ModalTitle>
         <ModalDescription>
           Fill in project details and list 5–10 key features
         </ModalDescription>
@@ -187,7 +194,7 @@ export default function ProjectDialog({
           <textarea
             id="description"
             {...register('description')}
-            className="h-28 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-cyan-300/80 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
+            className="h-28 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-slate-400 focus:border-cyan-300/80 focus:ring-2 focus:ring-cyan-300/60 focus:outline-none"
           />
           {validationErrors.description && (
             <p className="text-sm text-red-400">
@@ -201,7 +208,8 @@ export default function ProjectDialog({
           <Label>Features (5–10)</Label>
           <div className="space-y-2">
             {fields.map((field, index) => {
-              const featureId = (field as { featureId?: string }).featureId ?? ''
+              const featureId =
+                (field as { featureId?: string }).featureId ?? ''
               const featureError = validationErrors[`features.${index}.title`]
 
               return (
@@ -244,7 +252,9 @@ export default function ProjectDialog({
               Add Feature
             </Button>
             {validationErrors.features && (
-              <p className="text-sm text-red-400">{validationErrors.features}</p>
+              <p className="text-sm text-red-400">
+                {validationErrors.features}
+              </p>
             )}
           </div>
         </div>

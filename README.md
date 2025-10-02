@@ -18,13 +18,13 @@ AI‑assisted Product Requirements for your feature graph. codeWinter turns a pr
 
 ## How it works
 
-1) You create a project with features → we persist and immediately attempt a graph using Gemini. If your Gemini key isn’t configured yet, we fall back to a minimal graph and continue.
+1. You create a project with features → we persist and immediately attempt a graph using Gemini. If your Gemini key isn’t configured yet, we fall back to a minimal graph and continue.
 
-2) You connect your Gemini API key once in Settings. We encrypt it at rest using AES‑256‑GCM and store it in `user_settings`.
+2. You connect your Gemini API key once in Settings. We encrypt it at rest using AES‑256‑GCM and store it in `user_settings`.
 
-3) When you generate a PRD for a feature, we build rich context from the graph (connected features, incoming/outgoing dependencies) and call Gemini. The result is structured (JSON) + Markdown, saved in `feature_prds`.
+3. When you generate a PRD for a feature, we build rich context from the graph (connected features, incoming/outgoing dependencies) and call Gemini. The result is structured (JSON) + Markdown, saved in `feature_prds`.
 
-4) If you regenerate, the previous PRD is copied to `feature_prd_versions` and expires in 7 days (via triggers). All important events are logged in `audit_logs`.
+4. If you regenerate, the previous PRD is copied to `feature_prd_versions` and expires in 7 days (via triggers). All important events are logged in `audit_logs`.
 
 See the full technical spec in `TECHNICAL_SPEC.md`.
 
@@ -40,7 +40,7 @@ See the full technical spec in `TECHNICAL_SPEC.md`.
 
 ## Quick start
 
-1) Configure environment variables in `.env.local`
+1. Configure environment variables in `.env.local`
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=                       # your Supabase project URL
@@ -59,9 +59,9 @@ bun install                                     # install
 bun run dev                                     # run
 ```
 
-2) Sign in → Settings → paste your Gemini API key. We verify the key against Google’s endpoint and store it encrypted.
+2. Sign in → Settings → paste your Gemini API key. We verify the key against Google’s endpoint and store it encrypted.
 
-3) Create a project with 5–10 features, open a feature and click Generate PRD.
+3. Create a project with 5–10 features, open a feature and click Generate PRD.
 
 ## Scripts
 
@@ -194,20 +194,20 @@ web/
 
 All routes are authenticated via Supabase session cookies unless noted.
 
-| Method          | Endpoint                           | Description                         | Body/Notes                                           |
-|-----------------|------------------------------------|-------------------------------------|------------------------------------------------------|
-| POST            | `/api/projects`                    | Create project with features        | `{ name, description, features: [{ title }] }`       |
-| GET             | `/api/projects`                    | List user projects                  | —                                                    |
-| GET             | `/api/projects/:id`                | Project + features + edges          | —                                                    |
-| PATCH           | `/api/projects/:id`                | Update project and feature list     | —                                                    |
-| DELETE          | `/api/projects/:id`                | Delete project                      | —                                                    |
-| POST            | `/api/projects/:id/graph/generate` | Regenerate project graph            | —                                                    |
-| GET             | `/api/projects/:id/prds`           | List features with PRD status       | —                                                    |
-| POST            | `/api/prd/generate`                | Start PRD for a feature             | `{ projectId, featureId, regenerate?: boolean }`     |
-| GET             | `/api/features/:id/prd`            | Fetch PRD data for a feature        | —                                                    |
-| PATCH           | `/api/prd/:id`                     | Update PRD markdown                 | —                                                    |
-| GET             | `/api/prd/:id/download`            | Download PRD markdown               | —                                                    |
-| GET/POST/DELETE | `/api/settings/key`                | Manage encrypted Gemini API key     | —                                                    |
+| Method          | Endpoint                           | Description                     | Body/Notes                                       |
+| --------------- | ---------------------------------- | ------------------------------- | ------------------------------------------------ |
+| POST            | `/api/projects`                    | Create project with features    | `{ name, description, features: [{ title }] }`   |
+| GET             | `/api/projects`                    | List user projects              | —                                                |
+| GET             | `/api/projects/:id`                | Project + features + edges      | —                                                |
+| PATCH           | `/api/projects/:id`                | Update project and feature list | —                                                |
+| DELETE          | `/api/projects/:id`                | Delete project                  | —                                                |
+| POST            | `/api/projects/:id/graph/generate` | Regenerate project graph        | —                                                |
+| GET             | `/api/projects/:id/prds`           | List features with PRD status   | —                                                |
+| POST            | `/api/prd/generate`                | Start PRD for a feature         | `{ projectId, featureId, regenerate?: boolean }` |
+| GET             | `/api/features/:id/prd`            | Fetch PRD data for a feature    | —                                                |
+| PATCH           | `/api/prd/:id`                     | Update PRD markdown             | —                                                |
+| GET             | `/api/prd/:id/download`            | Download PRD markdown           | —                                                |
+| GET/POST/DELETE | `/api/settings/key`                | Manage encrypted Gemini API key | —                                                |
 
 See Technical Spec for full request/response contracts.
 

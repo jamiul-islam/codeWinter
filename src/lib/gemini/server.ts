@@ -12,7 +12,7 @@ export class GeminiKeyMissingError extends Error {
 
 export async function getDecryptedUserGeminiKey(
   supabase: SupabaseClient<Database>,
-  userId: string,
+  userId: string
 ): Promise<string> {
   const { data, error } = await supabase
     .from('user_settings')

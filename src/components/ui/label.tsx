@@ -13,7 +13,7 @@ export const Label = forwardRef<HTMLLabelElement, LabelProps>(
       className={cn('text-sm font-medium text-slate-200', className)}
       {...props}
     />
-  ),
+  )
 )
 
 Label.displayName = 'Label'

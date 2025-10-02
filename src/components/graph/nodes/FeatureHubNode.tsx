@@ -18,10 +18,13 @@ export function FeatureHubNode({ data }: NodeProps<FeatureHubData>) {
         'hover:border-cyan-400/50 hover:bg-slate-900/95'
       )}
     >
-      <p className="text-xs uppercase tracking-[0.35em] text-cyan-200/70">Features</p>
+      <p className="text-xs tracking-[0.35em] text-cyan-200/70 uppercase">
+        Features
+      </p>
       <h3 className="mt-2 text-lg font-semibold text-white">Feature graph</h3>
       <p className="mt-2 text-xs text-slate-300">
-        {data.featureCount} feature{data.featureCount === 1 ? '' : 's'} connected
+        {data.featureCount} feature{data.featureCount === 1 ? '' : 's'}{' '}
+        connected
       </p>
 
       <Handle

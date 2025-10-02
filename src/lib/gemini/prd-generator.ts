@@ -269,7 +269,10 @@ function parsePrdResponse(
 
     // If no markdown found after JSON, generate it from JSON
     if (!prdMarkdown || prdMarkdown.length < 100) {
-      prdMarkdown = generateMarkdownFromJson(prdJson as Parameters<typeof generateMarkdownFromJson>[0], context)
+      prdMarkdown = generateMarkdownFromJson(
+        prdJson as Parameters<typeof generateMarkdownFromJson>[0],
+        context
+      )
     }
 
     // Estimate token count (rough approximation)

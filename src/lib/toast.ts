@@ -82,7 +82,7 @@ export const prdToast = {
       description: 'Please add your API key in settings to generate PRDs',
       action: {
         label: 'Go to Settings',
-        onClick: () => window.location.href = '/settings',
+        onClick: () => (window.location.href = '/settings'),
       },
     })
   },

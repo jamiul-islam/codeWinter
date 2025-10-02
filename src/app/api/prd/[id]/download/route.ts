@@ -20,7 +20,8 @@ export async function GET(
     // Get PRD with project and feature info
     const { data: prd, error: prdError } = await supabase
       .from('feature_prds')
-      .select(`
+      .select(
+        `
         *,
         features!inner(
           id,
@@ -32,7 +33,8 @@ export async function GET(
             user_id
           )
         )
-      `)
+      `
+      )
       .eq('id', prdId)
       .single()
 
@@ -41,7 +43,11 @@ export async function GET(
     }
 
     // Verify user owns the project
-    const feature = prd.features as { id: string; title: string; projects: { id: string; name: string; user_id: string } }
+    const feature = prd.features as {
+      id: string
+      title: string
+      projects: { id: string; name: string; user_id: string }
+    }
     const project = feature.projects
     if (project.user_id !== userId) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
@@ -49,15 +55,18 @@ export async function GET(
 
     // Check if PRD is ready
     if (prd.status !== 'ready' || !prd.prd_md) {
-      return NextResponse.json({ 
-        error: 'PRD is not ready for download' 
-      }, { status: 400 })
+      return NextResponse.json(
+        {
+          error: 'PRD is not ready for download',
+        },
+        { status: 400 }
+      )
     }
 
     // Generate deterministic filename: {project_name}__{feature_title}.md
-    const sanitizeFilename = (str: string) => 
+    const sanitizeFilename = (str: string) =>
       str.replace(/[^a-zA-Z0-9\-_]/g, '_').replace(/_+/g, '_')
-    
+
     const filename = `${sanitizeFilename(project.name)}__${sanitizeFilename(feature.title)}.md`
 
     // Log download action
@@ -78,11 +87,13 @@ export async function GET(
         'Cache-Control': 'no-cache',
       },
     })
-
   } catch (error) {
     console.error('PRD download failed:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error' 
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+      },
+      { status: 500 }
+    )
   }
 }

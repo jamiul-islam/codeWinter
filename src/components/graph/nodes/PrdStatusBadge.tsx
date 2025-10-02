@@ -13,12 +13,12 @@ interface PrdStatusBadgeProps {
   onClick?: () => void
 }
 
-export function PrdStatusBadge({ 
-  status, 
-  error, 
+export function PrdStatusBadge({
+  status,
+  error,
   className,
   showText = true,
-  onClick
+  onClick,
 }: PrdStatusBadgeProps) {
   const getStatusConfig = () => {
     switch (status) {
@@ -66,9 +66,9 @@ export function PrdStatusBadge({
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium border',
+        'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium',
         config.className,
-        onClick && 'cursor-pointer hover:opacity-80 transition-opacity',
+        onClick && 'cursor-pointer transition-opacity hover:opacity-80',
         className
       )}
       title={error || config.text}

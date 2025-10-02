@@ -53,7 +53,7 @@ export const FeatureNode = memo(({ data }: NodeProps<FeatureNodeData>) => {
   return (
     <div
       className={cn(
-        'group min-w-[220px] max-w-[260px] rounded-3xl border border-white/10 bg-slate-950/80 p-5 shadow-lg shadow-black/40 backdrop-blur transition duration-300',
+        'group max-w-[260px] min-w-[220px] rounded-3xl border border-white/10 bg-slate-950/80 p-5 shadow-lg shadow-black/40 backdrop-blur transition duration-300',
         'hover:border-cyan-400/40 hover:shadow-cyan-500/20'
       )}
     >
@@ -67,11 +67,11 @@ export const FeatureNode = memo(({ data }: NodeProps<FeatureNodeData>) => {
                 status.glow
               )}
             />
-            <span className="text-[10px] uppercase tracking-[0.35em] text-slate-400">
+            <span className="text-[10px] tracking-[0.35em] text-slate-400 uppercase">
               {status.label}
             </span>
           </div>
-          <h3 className="text-base font-semibold leading-5 text-white">
+          <h3 className="text-base leading-5 font-semibold text-white">
             {data.title}
           </h3>
         </div>
@@ -99,8 +99,8 @@ export const FeatureNode = memo(({ data }: NodeProps<FeatureNodeData>) => {
 
       {/* PRD Status Badge */}
       <div className="mt-3 flex items-center justify-between">
-        <PrdStatusBadge 
-          status={data.prdStatus || 'idle'} 
+        <PrdStatusBadge
+          status={data.prdStatus || 'idle'}
           error={data.prdError}
           showText={false}
           className="cursor-pointer"
@@ -108,7 +108,7 @@ export const FeatureNode = memo(({ data }: NodeProps<FeatureNodeData>) => {
         />
         <button
           onClick={() => data.onPrdClick?.(data.featureId, data.title)}
-          className="text-xs text-slate-400 hover:text-cyan-300 transition-colors"
+          className="text-xs text-slate-400 transition-colors hover:text-cyan-300"
         >
           View PRD
         </button>
@@ -173,8 +173,14 @@ function TrashIcon() {
       strokeWidth={1.5}
     >
       <path d="M4 6h12" strokeLinecap="round" />
-      <path d="M8.5 6.5v-2a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v2" strokeLinecap="round" />
-      <path d="M6.5 6h7l-.5 9a1 1 0 0 1-1 .92h-3.5a1 1 0 0 1-1-.92L6.5 6Z" strokeLinejoin="round" />
+      <path
+        d="M8.5 6.5v-2a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M6.5 6h7l-.5 9a1 1 0 0 1-1 .92h-3.5a1 1 0 0 1-1-.92L6.5 6Z"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }

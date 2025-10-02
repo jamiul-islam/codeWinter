@@ -15,7 +15,7 @@ export function AppCardNode({ data }: NodeProps<AppCardData>) {
     <div
       title={data.description}
       className={cn(
-        'group min-w-[220px] max-w-[260px] rounded-3xl border border-white/10 bg-white/10 p-5 shadow-xl shadow-black/30 backdrop-blur transition-all duration-300',
+        'group max-w-[260px] min-w-[220px] rounded-3xl border border-white/10 bg-white/10 p-5 shadow-xl shadow-black/30 backdrop-blur transition-all duration-300',
         'hover:border-cyan-400/40 hover:bg-cyan-400/10 hover:shadow-cyan-500/20'
       )}
     >
@@ -24,7 +24,9 @@ export function AppCardNode({ data }: NodeProps<AppCardData>) {
           <span className="text-base font-semibold">App</span>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-[0.35em] text-cyan-200/70">Project</p>
+          <p className="text-xs tracking-[0.35em] text-cyan-200/70 uppercase">
+            Project
+          </p>
           <h3 className="text-lg font-semibold text-white">{data.name}</h3>
         </div>
       </div>

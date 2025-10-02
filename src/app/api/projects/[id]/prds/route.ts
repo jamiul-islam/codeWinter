@@ -3,7 +3,7 @@ import { getServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const { id: projectId } = await context.params
 
@@ -13,7 +13,10 @@ export async function GET(
     // Ensure user is authenticated
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
 
     // Fetch all features for this project
@@ -24,7 +27,10 @@ export async function GET(
       .order('created_at', { ascending: true })
 
     if (featuresError) {
-      return NextResponse.json({ error: featuresError.message }, { status: 500 })
+      return NextResponse.json(
+        { error: featuresError.message },
+        { status: 500 }
+      )
     }
 
     if (!features || features.length === 0) {
@@ -32,7 +38,7 @@ export async function GET(
     }
 
     // Fetch PRDs for these features
-    const featureIds = features.map(f => f.id)
+    const featureIds = features.map((f) => f.id)
     const { data: prds, error: prdsError } = await supabase
       .from('feature_prds')
       .select('id, feature_id, status, summary, error, updated_at')
@@ -46,13 +52,13 @@ export async function GET(
     // Create a map of PRDs by feature_id for quick lookup
     const prdsByFeatureId = new Map()
     if (prds) {
-      prds.forEach(prd => {
+      prds.forEach((prd) => {
         prdsByFeatureId.set(prd.feature_id, prd)
       })
     }
 
     // Combine features with their PRDs
-    const featuresWithPrds = features.map(feature => ({
+    const featuresWithPrds = features.map((feature) => ({
       id: feature.id,
       title: feature.title,
       prd: prdsByFeatureId.get(feature.id) || null,
@@ -60,7 +66,8 @@ export async function GET(
 
     return NextResponse.json({ features: featuresWithPrds })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch PRD count'
+    const message =
+      error instanceof Error ? error.message : 'Failed to fetch PRD count'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

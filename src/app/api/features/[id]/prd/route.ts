@@ -20,7 +20,8 @@ export async function GET(
     // Verify feature exists and user has access
     const { data: feature, error: featureError } = await supabase
       .from('features')
-      .select(`
+      .select(
+        `
         id,
         title,
         project_id,
@@ -28,7 +29,8 @@ export async function GET(
           id,
           user_id
         )
-      `)
+      `
+      )
       .eq('id', featureId)
       .single()
 
@@ -50,7 +52,8 @@ export async function GET(
       .single()
 
     if (prdError) {
-      if (prdError.code === 'PGRST116') { // No rows returned
+      if (prdError.code === 'PGRST116') {
+        // No rows returned
         return NextResponse.json({ error: 'PRD not found' }, { status: 404 })
       }
       throw prdError
@@ -66,11 +69,13 @@ export async function GET(
       error: prd.error,
       lastGenerated: prd.generated_at,
     })
-
   } catch (error) {
     console.error('Failed to fetch PRD:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error' 
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+      },
+      { status: 500 }
+    )
   }
 }

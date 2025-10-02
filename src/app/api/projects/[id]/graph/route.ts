@@ -28,7 +28,7 @@ type SanitizedEdge = {
 
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> },
+  context: { params: Promise<{ id: string }> }
 ) {
   const { id: projectId } = await context.params
 
@@ -38,14 +38,20 @@ export async function PATCH(
     // Check user authentication
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
 
     const body: GraphUpdatePayload = await req.json()
     const { nodes, edges } = body
 
     if (!Array.isArray(nodes) || !Array.isArray(edges)) {
-      return NextResponse.json({ error: 'Invalid nodes or edges format' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Invalid nodes or edges format' },
+        { status: 400 }
+      )
     }
 
     const sanitizedNodes = nodes.map(sanitizeNode)
@@ -53,7 +59,12 @@ export async function PATCH(
 
     await supabase
       .from('projects')
-      .update({ graph: { nodes: sanitizedNodes, edges: sanitizedEdges } as unknown as Json })
+      .update({
+        graph: {
+          nodes: sanitizedNodes,
+          edges: sanitizedEdges,
+        } as unknown as Json,
+      })
       .eq('id', projectId)
 
     const featureUpdates = sanitizedNodes
@@ -61,12 +72,16 @@ export async function PATCH(
         if (!node?.data || typeof node.data !== 'object') return null
         const data = node.data as Record<string, unknown>
         if (data.kind !== 'feature') return null
-        const featureId = typeof data.featureId === 'string' ? data.featureId : node.id
+        const featureId =
+          typeof data.featureId === 'string' ? data.featureId : node.id
         if (!featureId || typeof featureId !== 'string') return null
         if (!node.position) return null
         return { id: featureId, position: node.position }
       })
-      .filter((entry): entry is { id: string; position: { x: number; y: number } } => Boolean(entry))
+      .filter(
+        (entry): entry is { id: string; position: { x: number; y: number } } =>
+          Boolean(entry)
+      )
 
     for (const update of featureUpdates) {
       const { error: updateError } = await supabase
@@ -74,13 +89,17 @@ export async function PATCH(
         .update({ position: update.position })
         .eq('id', update.id)
       if (updateError) {
-        return NextResponse.json({ error: updateError.message }, { status: 400 })
+        return NextResponse.json(
+          { error: updateError.message },
+          { status: 400 }
+        )
       }
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to update project graph'
+    const message =
+      error instanceof Error ? error.message : 'Failed to update project graph'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
@@ -148,7 +167,11 @@ function sanitizeData(data: unknown): JsonRecord | undefined {
       }
       return
     }
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    ) {
       result[key] = value
     }
   })

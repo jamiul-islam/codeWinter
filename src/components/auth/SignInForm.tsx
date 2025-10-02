@@ -85,7 +85,10 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
   const isSubmitting = form.formState.isSubmitting
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 text-left">
+    <form
+      onSubmit={form.handleSubmit(onSubmit)}
+      className="space-y-5 text-left"
+    >
       <div className="space-y-2">
         <Label htmlFor={emailFieldId}>Work email</Label>
         <Input
@@ -109,7 +112,12 @@ export function SignInForm({ onSuccess }: SignInFormProps) {
         </div>
       )}
 
-      <Button type="submit" disabled={isSubmitting} size="lg" className="w-full">
+      <Button
+        type="submit"
+        disabled={isSubmitting}
+        size="lg"
+        className="w-full"
+      >
         {isSubmitting ? (
           <span className="flex items-center justify-center gap-2">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900/20 border-t-slate-900" />

@@ -35,7 +35,9 @@ export const prdRowSchema = z.object({
 // PRD Insert Schema
 export const prdInsertSchema = z.object({
   feature_id: uuidSchema,
-  status: z.enum(['idle', 'generating', 'ready', 'error']).default('generating'),
+  status: z
+    .enum(['idle', 'generating', 'ready', 'error'])
+    .default('generating'),
   summary: z.string().nullable().optional(),
   prd_md: z.string().nullable().optional(),
   prd_json: jsonSchema.nullable().optional(),
