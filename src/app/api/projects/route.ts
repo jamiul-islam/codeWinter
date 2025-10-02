@@ -28,7 +28,10 @@ export async function POST(req: NextRequest) {
     // Ensure user is authenticated
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
     const userId = userData.user.id
 
@@ -62,7 +65,10 @@ export async function POST(req: NextRequest) {
       .select()
 
     if (featuresError || !insertedFeatures) {
-      return NextResponse.json({ error: featuresError?.message || 'Failed to create features' }, { status: 500 })
+      return NextResponse.json(
+        { error: featuresError?.message || 'Failed to create features' },
+        { status: 500 }
+      )
     }
 
     const { graph } = await generateAndPersistProjectGraph({
@@ -80,12 +86,42 @@ export async function POST(req: NextRequest) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.issues }, { status: 400 })
     }
-    const message = error instanceof Error ? error.message : 'Failed to create project'
+    const message =
+      error instanceof Error ? error.message : 'Failed to create project'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
 // GET: Fetch all projects for the logged-in user
+// export async function GET() {
+//   try {
+//     const supabase = await getServerSupabaseClient()
+
+//     // Ensure user is authenticated
+//     const { data: userData } = await supabase.auth.getUser()
+//     if (!userData.user?.id) {
+//       return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+//     }
+//     const userId = userData.user.id
+
+//     // Fetch projects
+//     const { data: projects, error } = await supabase
+//       .from('projects')
+//       .select('id, name, updated_at')
+//       .eq('user_id', userId)
+//       .order('updated_at', { ascending: false })
+
+//     if (error) {
+//       return NextResponse.json({ error: error.message }, { status: 500 })
+//     }
+
+//     return NextResponse.json({ projects })
+//   } catch (error) {
+//     const message = error instanceof Error ? error.message : 'Failed to fetch projects'
+//     return NextResponse.json({ error: message }, { status: 500 })
+//   }
+// }
+
 export async function GET() {
   try {
     const supabase = await getServerSupabaseClient()
@@ -93,24 +129,54 @@ export async function GET() {
     // Ensure user is authenticated
     const { data: userData } = await supabase.auth.getUser()
     if (!userData.user?.id) {
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      )
     }
     const userId = userData.user.id
 
-    // Fetch projects
+    // Fetch projects with PRD count using joins
     const { data: projects, error } = await supabase
       .from('projects')
-      .select('id, name, updated_at')
+      .select(
+        `
+        id,
+        name,
+        updated_at,
+        features(
+          feature_prds(id)
+        )
+      `
+      )
       .eq('user_id', userId)
       .order('updated_at', { ascending: false })
 
     if (error) {
+      console.error('Supabase error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ projects })
+    // Transform the data to include prdCount
+    const projectsWithCount = (projects || []).map((project) => {
+      const prdCount =
+        project.features?.reduce((total, feature) => {
+          // feature_prds is an object when it exists, null when it doesn't
+          return total + (feature.feature_prds ? 1 : 0)
+        }, 0) || 0
+
+      return {
+        id: project.id,
+        name: project.name,
+        updated_at: project.updated_at,
+        prdCount,
+      }
+    })
+
+    return NextResponse.json({ projects: projectsWithCount })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch projects'
+    const message =
+      error instanceof Error ? error.message : 'Failed to fetch projects'
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
