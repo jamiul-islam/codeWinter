@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { generateAndPersistProjectGraph } from '@/lib/graph/generate'
 import { getServerSupabaseClient } from '@/lib/supabase/server'
+import { generateAndPersistProjectGraph } from '@/lib/graph/generate'
+import { getFirstZodError } from '@/lib/helpers/error-formatter'
 
 // Zod schema for project creation
 const featureInputSchema = z.object({
@@ -15,7 +16,14 @@ const projectSchema = z.object({
   features: z
     .array(featureInputSchema)
     .min(5, 'At least 5 features are required')
-    .max(10, 'No more than 10 features allowed'),
+    .max(10, 'No more than 10 features allowed')
+    .refine(
+      (features) => {
+        const titles = features.map((f) => f.title.trim().toLowerCase())
+        return new Set(titles).size === titles.length
+      },
+      { message: 'Feature titles must be unique' }
+    ),
 })
 
 // POST: Create a new project with features
@@ -48,23 +56,46 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (projectError || !project) {
+      console.log('Here is the error:')
+      if (projectError) {
+        console.log('projectError: ', projectError)
+      } else {
+        console.log('project No.')
+      }
       return NextResponse.json(
         { error: projectError?.message || 'Failed to create project' },
         { status: 500 }
       )
     }
 
-    // Insert features
-    const featuresData = validatedData.features.map((feature) => ({
+    // Insert features (ensure unique titles)
+    const uniqueFeatures = validatedData.features.filter(
+      (feature, index, arr) =>
+        arr.findIndex(
+          (f) =>
+            f.title.trim().toLowerCase() === feature.title.trim().toLowerCase()
+        ) === index
+    )
+
+    const featuresData = uniqueFeatures.map((feature) => ({
       project_id: project.id,
       title: feature.title.trim(),
     }))
+
+    console.log('Inserting features:', featuresData)
+
     const { data: insertedFeatures, error: featuresError } = await supabase
       .from('features')
       .insert(featuresData)
       .select()
 
     if (featuresError || !insertedFeatures) {
+      console.log('Here is the error:')
+      if (featuresError) {
+        console.log('featuresError: ', featuresError)
+      } else {
+        console.log('insertedFeatures No.')
+      }
       return NextResponse.json(
         { error: featuresError?.message || 'Failed to create features' },
         { status: 500 }
@@ -83,9 +114,15 @@ export async function POST(req: NextRequest) {
       project: { ...project, graph },
     })
   } catch (error) {
+    console.log('Error last: ', error)
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.issues }, { status: 400 })
+      console.log('yes zod')
+      return NextResponse.json(
+        { error: getFirstZodError(error) },
+        { status: 422 }
+      )
     }
+    console.log('normal')
     const message =
       error instanceof Error ? error.message : 'Failed to create project'
     return NextResponse.json({ error: message }, { status: 500 })
@@ -93,35 +130,6 @@ export async function POST(req: NextRequest) {
 }
 
 // GET: Fetch all projects for the logged-in user
-// export async function GET() {
-//   try {
-//     const supabase = await getServerSupabaseClient()
-
-//     // Ensure user is authenticated
-//     const { data: userData } = await supabase.auth.getUser()
-//     if (!userData.user?.id) {
-//       return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
-//     }
-//     const userId = userData.user.id
-
-//     // Fetch projects
-//     const { data: projects, error } = await supabase
-//       .from('projects')
-//       .select('id, name, updated_at')
-//       .eq('user_id', userId)
-//       .order('updated_at', { ascending: false })
-
-//     if (error) {
-//       return NextResponse.json({ error: error.message }, { status: 500 })
-//     }
-
-//     return NextResponse.json({ projects })
-//   } catch (error) {
-//     const message = error instanceof Error ? error.message : 'Failed to fetch projects'
-//     return NextResponse.json({ error: message }, { status: 500 })
-//   }
-// }
-
 export async function GET() {
   try {
     const supabase = await getServerSupabaseClient()
