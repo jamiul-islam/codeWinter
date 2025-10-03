@@ -319,7 +319,10 @@ function GraphCanvasInner() {
     : null
 
   const selectedFeatureTitle = selectedFeature
-    ? (selectedFeature.data as { title?: string })?.title || 'Feature'
+    ? (() => {
+        console.log('Selected feature data:', selectedFeature.data)
+        return (selectedFeature.data as { title?: string })?.title || 'Untitled Feature'
+      })()
     : undefined
 
   return (
