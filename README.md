@@ -238,6 +238,19 @@ RLS policies ensure users can only see their own data. Triggers capture PRD audi
 - Security: report vulnerabilities privately (do not open public issues).
 - Licensing: ensure dependency license compatibility; attribute or remove unclear snippets.
 
+## Contributors
+
+This project is built and maintained by a dedicated team of developers:
+
+- **[Jamiul Islam](https://github.com/jamiul-islam)** - *Project Lead & Architecture*
+- **[Mahfuzur Rahman](https://github.com/mahfuzurrahman98)** - *Full-Stack Developer*
+- **[Farhan Shahriyar](https://github.com/farhanshahriyar)** - *Full-Stack Developer*
+- **[Alif](https://github.com/ameerul-muminin)** - *Front End Developer*
+
+### 🤝 How to Contribute
+
+We welcome contributions! Please see the [Contribution](#contribution) section above for guidelines on how to get started.
+
 ---
 
 Made with ❤️ at University of London.
