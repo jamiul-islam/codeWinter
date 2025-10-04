@@ -23,6 +23,17 @@ export const projectInsertSchema = z.object({
   features: projectFeatureListSchema,
 })
 
+export const projectFeatureAutofillSchema = z.object({
+  name: projectNameSchema,
+  description: projectDescriptionSchema,
+  count: z
+    .number()
+    .int()
+    .min(1)
+    .max(10)
+    .default(5),
+})
+
 export const projectRowSchema = z.object({
   id: uuidSchema,
   user_id: uuidSchema,
@@ -35,3 +46,6 @@ export const projectRowSchema = z.object({
 
 export type ProjectInsert = z.infer<typeof projectInsertSchema>
 export type ProjectRow = z.infer<typeof projectRowSchema>
+export type ProjectFeatureAutofill = z.infer<
+  typeof projectFeatureAutofillSchema
+>

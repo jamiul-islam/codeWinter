@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { prdToast, projectToast } from '@/lib/toast'
 
 // Define the type for form data
 export interface ProjectFormData {
@@ -109,11 +110,18 @@ export default function ProjectDialog({
     Record<string, string>
   >({})
 
-  const { register, handleSubmit, control, reset, formState } =
-    useForm<ProjectFormData>({
-      defaultValues,
-      mode: 'onChange',
-    })
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState,
+    getValues,
+    setValue,
+  } = useForm<ProjectFormData>({
+    defaultValues,
+    mode: 'onChange',
+  })
 
   const { fields, append, remove, replace } = useFieldArray({
     control,
@@ -121,6 +129,7 @@ export default function ProjectDialog({
   })
 
   const { isSubmitting } = formState
+  const [isAutofilling, setIsAutofilling] = useState(false)
 
   useEffect(() => {
     if (!isOpen) return
@@ -137,6 +146,20 @@ export default function ProjectDialog({
     setFormError(null)
     setValidationErrors({})
   }, [isOpen, initialData, defaultValues, reset, replace])
+
+  const validateBasicProjectDetails = (data: ProjectFormData) => {
+    const errors: Record<string, string> = {}
+
+    if (!data.name || data.name.trim().length < 3) {
+      errors.name = 'Project name must be at least 3 characters'
+    }
+
+    if (!data.description || data.description.trim().length < 10) {
+      errors.description = 'Description must be at least 10 characters'
+    }
+
+    return errors
+  }
 
   const submitHandler = async (data: ProjectFormData) => {
     setFormError(null)
@@ -167,6 +190,121 @@ export default function ProjectDialog({
           ? error.message
           : 'Unable to save project right now.'
       setFormError(message)
+    }
+  }
+
+  const handleAutofillFeatures = async () => {
+    if (isAutofilling) return
+
+    const currentValues = getValues()
+    const trimmedName = currentValues.name.trim()
+    const trimmedDescription = currentValues.description.trim()
+
+    const detailErrors = validateBasicProjectDetails({
+      ...currentValues,
+      name: trimmedName,
+      description: trimmedDescription,
+    })
+
+    if (Object.keys(detailErrors).length > 0) {
+      setValidationErrors((prev) => ({ ...prev, ...detailErrors }))
+      setFormError(null)
+      return
+    }
+
+    setValue('name', trimmedName)
+    setValue('description', trimmedDescription)
+    setFormError(null)
+    setValidationErrors((prev) =>
+      Object.keys(prev).length
+        ? Object.entries(prev).reduce<Record<string, string>>(
+            (acc, [key, value]) => {
+              if (!key.startsWith('features')) acc[key] = value
+              return acc
+            },
+            {}
+          )
+        : prev
+    )
+
+    try {
+      setIsAutofilling(true)
+      projectToast.autofillStarted()
+
+      const response = await fetch('/api/features/autofill', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: trimmedName,
+          description: trimmedDescription,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        if (
+          response.status === 400 &&
+          typeof data?.error === 'string' &&
+          data.error.includes('API key')
+        ) {
+          prdToast.apiKeyMissing()
+        }
+
+        const message =
+          typeof data?.error === 'string'
+            ? data.error
+            : 'Unable to generate features right now.'
+        projectToast.autofillError(message)
+        setFormError(message)
+        return
+      }
+
+      const features = Array.isArray(data?.features) ? data.features : []
+
+      if (features.length < MIN_FEATURE_COUNT) {
+        const message = 'Gemini returned fewer than five features. Try again.'
+        projectToast.autofillError(message)
+        setFormError(message)
+        return
+      }
+
+      interface AutofillFeatureInput {
+        title?: string
+      }
+
+      interface NormalizedFeature {
+        title: string
+      }
+
+      const normalized: NormalizedFeature[] = (features as AutofillFeatureInput[])
+        .slice(0, 10)
+        .map((feature: AutofillFeatureInput): NormalizedFeature => ({
+          title: (feature?.title ?? '').trim(),
+        }))
+        .filter((feature: NormalizedFeature) => feature.title.length >= 3)
+
+      if (normalized.length < MIN_FEATURE_COUNT) {
+        const message = 'AI suggestions were incomplete. Adjust details and retry.'
+        projectToast.autofillError(message)
+        setFormError(message)
+        return
+      }
+
+      replace(normalizeFeatures(normalized))
+      setValidationErrors({})
+      projectToast.autofillSuccess(normalized.length)
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Unable to generate features right now.'
+      projectToast.autofillError(message)
+      setFormError(message)
+    } finally {
+      setIsAutofilling(false)
     }
   }
 
@@ -245,15 +383,32 @@ export default function ProjectDialog({
               )
             })}
           </div>
-          <div className="flex items-center justify-between">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => append(emptyFeature())}
-              disabled={fields.length >= 10}
-            >
-              Add Feature
-            </Button>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => append(emptyFeature())}
+                disabled={fields.length >= 10 || isAutofilling || isSubmitting}
+              >
+                Add Feature
+              </Button>
+              <Button
+                type="button"
+                onClick={handleAutofillFeatures}
+                variant="secondary"
+                disabled={isAutofilling || isSubmitting}
+              >
+                {isAutofilling ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-900/20 border-t-slate-900" />
+                    Generating…
+                  </span>
+                ) : (
+                  'Autofill features'
+                )}
+              </Button>
+            </div>
             {validationErrors.features && (
               <p className="text-sm text-red-400">
                 {validationErrors.features}
