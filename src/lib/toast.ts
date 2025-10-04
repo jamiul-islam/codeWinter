@@ -79,11 +79,31 @@ export const prdToast = {
 
   apiKeyMissing: () => {
     toast.error('Gemini API key required', {
-      description: 'Please add your API key in settings to generate PRDs',
+      description: 'Add your API key in settings to use AI-assisted features.',
       action: {
         label: 'Go to Settings',
-        onClick: () => window.location.href = '/settings',
+        onClick: () => (window.location.href = '/settings'),
       },
     })
   },
+}
+
+export const projectToast = {
+  autofillStarted: () =>
+    toast.loading('Generating feature ideas…', {
+      id: 'project-autofill',
+      description: 'Asking Gemini to suggest five launch-ready features.',
+    }),
+
+  autofillSuccess: (count: number) =>
+    toast.success('Features added', {
+      id: 'project-autofill',
+      description: `${count} AI-generated features have been populated.`,
+    }),
+
+  autofillError: (message?: string) =>
+    toast.error('Feature generation failed', {
+      id: 'project-autofill',
+      description: message ?? 'Please try again or adjust your project details.',
+    }),
 }

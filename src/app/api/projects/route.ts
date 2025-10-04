@@ -82,8 +82,6 @@ export async function POST(req: NextRequest) {
       title: feature.title.trim(),
     }))
 
-    console.log('Inserting features:', featuresData)
-
     const { data: insertedFeatures, error: featuresError } = await supabase
       .from('features')
       .insert(featuresData)
@@ -116,13 +114,11 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.log('Error last: ', error)
     if (error instanceof z.ZodError) {
-      console.log('yes zod')
       return NextResponse.json(
         { error: getFirstZodError(error) },
         { status: 422 }
       )
     }
-    console.log('normal')
     const message =
       error instanceof Error ? error.message : 'Failed to create project'
     return NextResponse.json({ error: message }, { status: 500 })
